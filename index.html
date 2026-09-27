@@ -289,10 +289,15 @@
 
       function el(id) { return document.getElementById(id); }
 
+      var hideTimer;
       function showInstallButton() {
         if (isStandalone) return;
         var b = el("install-btn");
-        if (b && window.__bip) b.hidden = false;
+        if (b && window.__bip) {
+          b.hidden = false;                       // aparece como banner…
+          clearTimeout(hideTimer);
+          hideTimer = setTimeout(function () { b.hidden = true; }, 5000); // …y se esconde en 5s
+        }
       }
 
       function setup() {
@@ -305,6 +310,7 @@
             var e = window.__bip;
             if (!e) return;
             e.prompt();
+            clearTimeout(hideTimer);
             try { await e.userChoice; } catch (_) {}
             window.__bip = null;
             b.hidden = true;
@@ -323,7 +329,10 @@
         var isSafari = /^((?!chrome|crios|fxios|edgios).)*safari/i.test(ua);
         if (isIOS && isSafari) {
           var h = el("ios-hint");
-          if (h) h.hidden = false;
+          if (h) {
+            h.hidden = false;                        // banner momentáneo…
+            setTimeout(function () { h.hidden = true; }, 5000); // …se esconde en 5s
+          }
         }
       }
 
