@@ -159,6 +159,17 @@
       </label>
 
       <label class="field">
+        <span>Categoría</span>
+        <select id="entry-category">
+          <option value="Redes sociales">Redes sociales</option>
+          <option value="Bancos">Bancos</option>
+          <option value="Trabajo">Trabajo</option>
+          <option value="Correos">Correos</option>
+          <option value="Otros" selected>Otros</option>
+        </select>
+      </label>
+
+      <label class="field">
         <span>URL</span>
         <input type="text" id="entry-url" placeholder="https://…" />
       </label>
@@ -317,8 +328,9 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <!-- Librería de Supabase (CDN) -->
+  <!-- Librerías externas (CDN): Supabase + arrastrar para ordenar -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="supabase.js"></script>
