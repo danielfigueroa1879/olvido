@@ -383,28 +383,45 @@
 
     $("#empty-state").hidden = active.length !== 0;
 
+    let n = 0;
     for (const en of items) {
+      n++;
       const card = document.createElement("article");
       card.className = "entry";
       const href = safeUrl(en.url);
+      const title = en.title || "(sin título)";
+      const ini = initial(title);
+      const color = avatarColor(title);
       card.innerHTML = `
-        <div class="entry-main">
-          <div class="entry-title">${escapeHtml(en.title || "(sin título)")}</div>
-          <div class="entry-sub">${escapeHtml(en.username || "")}</div>
-          ${href ? `<a class="entry-url" href="${escapeAttr(href)}" target="_blank" rel="noopener">${escapeHtml(en.url)}</a>` : ""}
-        </div>
+        <span class="entry-num">${n}</span>
+        <div class="entry-avatar" style="background:${color}">${escapeHtml(ini)}</div>
+        <button type="button" class="entry-open" data-act="open">
+          <div class="entry-title">${escapeHtml(title)}</div>
+          ${en.username ? `<div class="entry-sub">${escapeHtml(en.username)}</div>` : ""}
+          ${href ? `<span class="entry-url">${escapeHtml(en.url)}</span>` : ""}
+        </button>
         <div class="entry-actions">
-          <button class="ghost" data-act="copy-user" title="Copiar usuario">👤</button>
-          <button class="ghost" data-act="copy-pass" title="Copiar contraseña">🔑</button>
-          <button class="ghost" data-act="edit" title="Editar">✏</button>
-          <button class="ghost danger" data-act="del" title="Eliminar">🗑</button>
+          <button type="button" class="ghost entry-key" data-act="copy-pass" title="Copiar contraseña">🔑</button>
+          <button type="button" class="entry-chevron" data-act="open" title="Ver / editar" aria-label="Abrir">›</button>
         </div>`;
-      card.querySelector('[data-act="copy-user"]').onclick = () => copyClip(en.username, "Usuario copiado");
-      card.querySelector('[data-act="copy-pass"]').onclick = () => copyClip(en.password, "Contraseña copiada (se borra en 20s)", true);
-      card.querySelector('[data-act="edit"]').onclick = () => openEntryDialog(en);
-      card.querySelector('[data-act="del"]').onclick = () => deleteEntry(en.id);
+      card.querySelector('.entry-open').onclick = () => openEntryDialog(en);
+      card.querySelector('.entry-chevron').onclick = () => openEntryDialog(en);
+      card.querySelector('[data-act="copy-pass"]').onclick = (e) => { e.stopPropagation(); copyClip(en.password, "Contraseña copiada (se borra en 20s)", true); };
       list.appendChild(card);
     }
+  }
+
+  // Inicial (primera letra útil) del título para el avatar.
+  function initial(s) {
+    const m = String(s || "").trim().match(/[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ]/);
+    return m ? m[0].toUpperCase() : "•";
+  }
+  // Color estable a partir del texto (para el avatar redondo).
+  function avatarColor(s) {
+    let h = 0;
+    const str = String(s || "");
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+    return `hsl(${h}, 55%, 45%)`;
   }
 
   // =====================================================================
@@ -420,6 +437,19 @@
     $("#entry-password").value = entry?.password || "";
     $("#entry-notes").value = entry?.notes || "";
     $("#entry-password").type = "password";
+
+    // Botones de copiar y eliminar solo cuando ya existe la entrada.
+    const isExisting = !!entry;
+    $("#detail-actions").hidden = !isExisting;
+    $("#entry-delete").hidden = !isExisting;
+    if (isExisting) {
+      $("#detail-copy-user").onclick = () => copyClip(entry.username, "Usuario copiado");
+      $("#detail-copy-pass").onclick = () => copyClip(entry.password, "Contraseña copiada (se borra en 20s)", true);
+      $("#entry-delete").onclick = async () => {
+        dlg.close();
+        await deleteEntry(entry.id);
+      };
+    }
     dlg.showModal();
   }
 
@@ -573,6 +603,279 @@
   }
 
   // =====================================================================
+  // IMPORTACIÓN MASIVA (pegar texto / CSV / PDF / Word) — ordena y numera
+  // =====================================================================
+  let importParsed = [];
+
+  function normalizeKey(k) {
+    k = String(k || "").toLowerCase().trim();
+    if (/(t[íi]tulo|title|servicio|service|sitio|site|nombre|name|cuenta|account|app|aplicaci)/.test(k)) return "title";
+    if (/(usuario|user|correo|e-?mail|login)/.test(k)) return "username";
+    if (/(contrase|password|pass|clave|pin|secret)/.test(k)) return "password";
+    if (/(url|web|p[áa]gina|page|link|dominio)/.test(k)) return "url";
+    if (/(nota|note|coment)/.test(k)) return "notes";
+    return null;
+  }
+
+  function normalizeEntry(e) {
+    if (!e) return null;
+    const out = {
+      title: (e.title || "").trim(),
+      username: (e.username || "").trim(),
+      password: (e.password || "").trim(),
+      url: (e.url || "").trim(),
+      notes: (e.notes || "").trim(),
+    };
+    if (!out.title && !out.username && !out.password && !out.url) return null;
+    if (!out.title) out.title = out.username || out.url || "(sin título)";
+    return out;
+  }
+
+  function splitDelim(line, delim) {
+    if (delim === "\t" || delim === "|") return line.split(delim);
+    const out = []; let cur = "", q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (q) {
+        if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+        else cur += ch;
+      } else {
+        if (ch === '"') q = true;
+        else if (ch === delim) { out.push(cur); cur = ""; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function detectDelim(lines) {
+    if (!lines.length) return null;
+    for (const d of ["\t", ";", "|", ","]) {
+      const withD = lines.filter((l) => l.split(d).length - 1 >= 1).length;
+      if (withD >= Math.max(1, Math.ceil(lines.length * 0.6))) return d;
+    }
+    return null;
+  }
+
+  function parseKeyValueBlocks(rawLines) {
+    const out = []; let cur = null;
+    const flush = () => {
+      const e = normalizeEntry(cur);
+      if (e) out.push(e);
+      cur = null;
+    };
+    for (const line of rawLines) {
+      const t = line.trim();
+      if (!t) { flush(); continue; }
+      const m = t.match(/^([^:=]{1,30})[:=]\s*(.*)$/);
+      if (m) {
+        const key = normalizeKey(m[1]); const val = m[2].trim();
+        if (key) { cur = cur || {}; cur[key] = cur[key] ? cur[key] + " " + val : val; continue; }
+      }
+      cur = cur || {};
+      if (!cur.title) cur.title = t; else cur.notes = (cur.notes ? cur.notes + " " : "") + t;
+    }
+    flush();
+    return out;
+  }
+
+  // Solo es encabezado si CADA celda no vacía es una etiqueta conocida (exacta).
+  // Así valores como "correo@x.com" o "insta_user" no se confunden con columnas.
+  function headerKey(cell) {
+    const k = String(cell || "").toLowerCase().trim();
+    if (!k) return "";
+    const exact = {
+      "titulo": "title", "título": "title", "title": "title", "servicio": "title",
+      "service": "title", "sitio": "title", "site": "title", "nombre": "title",
+      "name": "title", "cuenta": "title", "account": "title", "app": "title",
+      "usuario": "username", "user": "username", "username": "username",
+      "correo": "username", "email": "username", "e-mail": "username", "login": "username",
+      "contrasena": "password", "contraseña": "password", "password": "password",
+      "pass": "password", "clave": "password", "pin": "password",
+      "url": "url", "web": "url", "pagina": "url", "página": "url", "link": "url", "dominio": "url",
+      "nota": "notes", "notas": "notes", "note": "notes", "notes": "notes", "comentario": "notes",
+    };
+    return exact[k] || null;
+  }
+  function detectHeader(cols) {
+    const mapped = cols.map(headerKey);
+    const nonEmpty = cols.filter((c) => String(c).trim()).length;
+    const matched = mapped.filter(Boolean).length;
+    if (matched >= 2 && matched === nonEmpty) return mapped;
+    return null;
+  }
+
+  function parseDelimited(lines, delim) {
+    const rows = lines.map((l) => splitDelim(l, delim));
+    let map = null, start = 0;
+    const header = detectHeader(rows[0]);
+    if (header) { map = header; start = 1; }
+    const out = [];
+    for (let i = start; i < rows.length; i++) {
+      const cols = rows[i];
+      if (cols.every((c) => !String(c).trim())) continue;
+      let e = {};
+      if (map) {
+        map.forEach((k, idx) => { if (k && cols[idx] != null) e[k] = String(cols[idx]).trim(); });
+        if (!e.title) { const idx = map.findIndex((k) => !k); if (idx >= 0 && cols[idx]) e.title = String(cols[idx]).trim(); }
+      } else {
+        e.title = (cols[0] || "").trim();
+        e.username = (cols[1] || "").trim();
+        e.password = (cols[2] || "").trim();
+        e.url = (cols[3] || "").trim();
+        e.notes = cols.slice(4).join(" ").trim();
+      }
+      const ne = normalizeEntry(e);
+      if (ne) out.push(ne);
+    }
+    return out;
+  }
+
+  function lineToEntry(line) {
+    const t = line.trim();
+    if (!t) return null;
+    const parts = t.split(/\s*[|\t;]\s*|\s{2,}|\s+[-–—]\s+|\s*,\s*/).map((s) => s.trim()).filter(Boolean);
+    let e = {};
+    if (parts.length <= 1) { e.title = t; }
+    else {
+      const rest = [];
+      for (const p of parts) {
+        if (!e.username && /\S+@\S+\.\S+/.test(p)) e.username = p;
+        else if (!e.url && /^(https?:\/\/|www\.)/i.test(p)) e.url = p;
+        else rest.push(p);
+      }
+      e.title = rest.shift() || e.username || e.url || "(sin título)";
+      if (rest.length) e.password = rest.shift();
+      if (rest.length) e.notes = rest.join(" ");
+    }
+    return normalizeEntry(e);
+  }
+
+  /** Analiza texto libre y devuelve entradas ordenadas. */
+  function parseImport(text) {
+    const raw = String(text || "").replace(/\r\n?/g, "\n").trim();
+    if (!raw) return [];
+    const allLines = raw.split("\n");
+    const lines = allLines.map((l) => l.trim());
+
+    const kvRe = /^\s*(t[íi]tulo|title|servicio|service|sitio|site|nombre|name|cuenta|account|app|usuario|user(name)?|correo|e-?mail|login|contrase[ñn]a|password|pass|clave|pin|url|web|p[áa]gina|nota|notas?|notes?)\s*[:=]/i;
+    if (lines.filter((l) => kvRe.test(l)).length >= 2) return parseKeyValueBlocks(allLines);
+
+    const nonEmpty = lines.filter(Boolean);
+    const delim = detectDelim(nonEmpty);
+    if (delim) return parseDelimited(nonEmpty, delim);
+
+    return nonEmpty.map(lineToEntry).filter(Boolean);
+  }
+
+  // ---- Lectura de archivos (PDF / Word se cargan bajo demanda) ----
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src; s.onload = resolve;
+      s.onerror = () => reject(new Error("no se pudo cargar el lector (¿sin conexión?)"));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function extractPdf(file) {
+    if (!window.pdfjsLib) {
+      await loadScript("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    }
+    const data = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data }).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((it) => it.str).join(" ") + "\n";
+    }
+    return text;
+  }
+
+  async function extractDocx(file) {
+    if (!window.mammoth) {
+      await loadScript("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js");
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const r = await window.mammoth.extractRawText({ arrayBuffer });
+    return r.value || "";
+  }
+
+  async function extractText(file) {
+    const name = (file.name || "").toLowerCase();
+    if (name.endsWith(".pdf")) return extractPdf(file);
+    if (name.endsWith(".docx")) return extractDocx(file);
+    return file.text(); // txt, csv, y otros de texto
+  }
+
+  function openImportDialog() {
+    $("#import-text").value = "";
+    $("#import-preview").innerHTML = "";
+    $("#import-preview").hidden = true;
+    hide($("#import-error")); hide($("#import-status"));
+    $("#import-confirm").hidden = true;
+    importParsed = [];
+    $("#import-dialog").showModal();
+  }
+
+  function analyzeImport() {
+    hide($("#import-error"));
+    const text = $("#import-text").value;
+    if (!text.trim()) { $("#import-error").textContent = "Pega texto o sube un archivo primero."; show($("#import-error")); return; }
+    importParsed = parseImport(text);
+    renderImportPreview();
+  }
+
+  function renderImportPreview() {
+    const box = $("#import-preview");
+    box.innerHTML = "";
+    if (!importParsed.length) {
+      $("#import-error").textContent = "No pude detectar contraseñas. Revisa el formato (una por línea, o 'Título | usuario | contraseña').";
+      show($("#import-error"));
+      box.hidden = true;
+      $("#import-confirm").hidden = true;
+      return;
+    }
+    hide($("#import-error"));
+    importParsed.forEach((e, i) => {
+      const row = document.createElement("div");
+      row.className = "imp-row";
+      row.innerHTML = `
+        <span class="imp-num">${i + 1}</span>
+        <div class="imp-main">
+          <div class="imp-title">${escapeHtml(e.title)}</div>
+          <div class="imp-sub">${escapeHtml(e.username || "")}${e.password ? " · ••••••" : ""}${e.url ? " · " + escapeHtml(e.url) : ""}</div>
+        </div>
+        <button type="button" class="ghost danger imp-del" title="Quitar">✕</button>`;
+      row.querySelector(".imp-del").onclick = () => { importParsed.splice(i, 1); renderImportPreview(); };
+      box.appendChild(row);
+    });
+    box.hidden = false;
+    const btn = $("#import-confirm");
+    btn.hidden = false;
+    btn.textContent = `Importar ${importParsed.length}`;
+  }
+
+  async function confirmImport() {
+    if (!importParsed.length) return;
+    const now = Date.now();
+    const toAdd = importParsed.map((e, i) => ({
+      id: crypto.randomUUID(),
+      title: e.title, username: e.username, password: e.password, url: e.url, notes: e.notes,
+      updatedAt: new Date(now + i).toISOString(),
+    }));
+    entries = mergeEntries(entries, toAdd);
+    render($("#search").value);
+    $("#import-dialog").close();
+    toast(`Importadas ${toAdd.length} contraseñas ✓`, "ok");
+    await pushVault();
+  }
+
+  // =====================================================================
   // EVENTOS GLOBALES
   // =====================================================================
   function wireGlobalEvents() {
@@ -598,6 +901,7 @@
     // Modal entrada
     $("#entry-form").addEventListener("submit", () => saveEntryFromForm());
     $("#entry-cancel").onclick = () => $("#entry-dialog").close();
+    // (los botones copiar/eliminar del detalle se conectan en openEntryDialog)
     $("#gen-btn").onclick = () => {
       const pw = Vault.generatePassword({ length: 20 });
       const inp = $("#entry-password");
@@ -624,6 +928,31 @@
     $("#import-btn").onclick = () => $("#import-file").click();
     $("#import-file").addEventListener("change", (e) => {
       if (e.target.files[0]) importVault(e.target.files[0]);
+    });
+
+    // Importación masiva (pegar / PDF / Word / texto)
+    $("#bulk-import-btn").onclick = () => { $("#settings-dialog").close(); openImportDialog(); };
+    $("#import-cancel").onclick = () => $("#import-dialog").close();
+    $("#import-analyze").onclick = analyzeImport;
+    $("#import-confirm").onclick = confirmImport;
+    $("#import-file2-btn").onclick = () => $("#import-file2").click();
+    $("#import-file2").addEventListener("change", async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      hide($("#import-error"));
+      $("#import-status").textContent = "Leyendo archivo…";
+      show($("#import-status"));
+      try {
+        const text = await extractText(f);
+        $("#import-text").value = text;
+        hide($("#import-status"));
+        analyzeImport();
+      } catch (err) {
+        hide($("#import-status"));
+        $("#import-error").textContent = "No se pudo leer el archivo: " + (err.message || err);
+        show($("#import-error"));
+      }
+      e.target.value = "";
     });
 
     // Reinicia el temporizador de auto-bloqueo con actividad del usuario.
