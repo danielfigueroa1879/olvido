@@ -140,9 +140,9 @@ body {
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* =====================================================================
-   Pantalla de bloqueo
+   Pantalla de acceso
    ===================================================================== */
-#lock-screen {
+#auth-screen {
   display: flex;
   align-items: center;
   justify-content: center;

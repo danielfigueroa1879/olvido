@@ -61,6 +61,12 @@ const Cloud = (() => {
     try { await getClient().auth.signOut(); } catch {}
   }
 
+  /** Cambia la "contraseña" (hash de acceso) de la sesión actual en Supabase. */
+  async function updatePassword(newAuthPassword) {
+    const { error } = await getClient().auth.updateUser({ password: newAuthPassword });
+    if (error) throw new Error(friendly(error));
+  }
+
   async function getSession() {
     if (!configured()) return null;
     try {
@@ -104,7 +110,7 @@ const Cloud = (() => {
   }
 
   return {
-    configured, signUp, signIn, signOut,
+    configured, signUp, signIn, signOut, updatePassword,
     getSession, currentUser, loadVault, saveVault,
   };
 })();

@@ -170,7 +170,10 @@
           Tu bóveda está en la nube (cifrada). Inicia sesión con este mismo correo y
           contraseña en cualquier dispositivo para verla.
         </p>
-        <button type="button" class="ghost danger" id="signout-btn">Cerrar sesión</button>
+        <div class="row">
+          <button type="button" class="ghost" id="change-pw-btn">🔑 Cambiar contraseña maestra</button>
+          <button type="button" class="ghost danger" id="signout-btn">Cerrar sesión</button>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -193,6 +196,45 @@
       <menu class="dialog-actions">
         <button type="button" class="ghost" value="cancel" id="settings-cancel">Cerrar</button>
         <button type="submit" class="primary">Guardar ajustes</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL: CAMBIAR CONTRASEÑA MAESTRA ============ -->
+  <dialog id="password-dialog">
+    <form method="dialog" id="password-form">
+      <h2>Cambiar contraseña maestra</h2>
+      <p class="hint">
+        Se cambiará tu clave de acceso y se volverá a cifrar toda la bóveda con la
+        nueva contraseña. Deberás usarla en todos tus dispositivos.
+      </p>
+
+      <label class="field">
+        <span>Nueva contraseña maestra</span>
+        <div class="pw-input">
+          <input type="password" id="new-password" autocomplete="new-password" spellcheck="false" />
+          <button type="button" class="ghost reveal" data-target="new-password" title="Mostrar/ocultar">👁</button>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Confirmar nueva contraseña</span>
+        <input type="password" id="new-password-confirm" autocomplete="new-password" spellcheck="false" />
+      </label>
+
+      <div id="new-strength" class="strength">
+        <div class="strength-bar"><span id="new-strength-fill"></span></div>
+        <small id="new-strength-label"></small>
+      </div>
+
+      <p class="error" id="password-error" hidden></p>
+      <p class="warn">
+        ⚠️ No la olvides: sin ella no hay forma de recuperar la bóveda.
+      </p>
+
+      <menu class="dialog-actions">
+        <button type="button" class="ghost" value="cancel" id="password-cancel">Cancelar</button>
+        <button type="submit" class="primary" id="password-save">Cambiar</button>
       </menu>
     </form>
   </dialog>
