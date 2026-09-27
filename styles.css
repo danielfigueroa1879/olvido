@@ -289,6 +289,26 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
    Mensajes
    ===================================================================== */
 .error { color: var(--danger); font-size: 14px; margin: var(--sp-2) 0; }
+.ok-msg { color: var(--ok); font-size: 14px; margin: var(--sp-2) 0; }
+
+/* Enlaces de texto (cambiar entre iniciar sesión / crear cuenta) */
+.switch-line { color: var(--muted); font-size: 14px; margin: var(--sp-4) 0 0; }
+.link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 4px 4px;
+  min-height: auto;
+  font-size: 14px;
+}
+.link:hover { text-decoration: underline; }
+
+input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  color: var(--muted);
+}
 .warn {
   color: var(--warn);
   font-size: 13px;

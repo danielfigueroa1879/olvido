@@ -1,36 +1,37 @@
 /*
- * crypto.js — Cifrado zero-knowledge del baúl.
+ * crypto.js — Criptografía zero-knowledge de la bóveda (modelo multiusuario).
  *
- * Modelo de seguridad:
- *   - La contraseña maestra NUNCA se guarda ni se transmite.
- *   - De ella se deriva una llave con PBKDF2-HMAC-SHA256 (muchas iteraciones).
- *   - El baúl se cifra con AES-256-GCM (cifrado + autenticación/anti-manipulación).
- *   - salt e iv son aleatorios y se guardan junto al texto cifrado (no son secretos).
- *   - Todo corre en el navegador con la Web Crypto API nativa.
+ * De la contraseña maestra + el correo se derivan DOS llaves separadas:
+ *   1) encKey       -> AES-256-GCM, cifra/descifra la bóveda (NUNCA sale del navegador).
+ *   2) authPassword -> hash que se usa como "contraseña" ante Supabase para iniciar
+ *                      sesión. El servidor solo ve este hash, jamás tu contraseña real
+ *                      ni la llave de cifrado. Aunque la base de datos se filtre, la
+ *                      bóveda sigue cifrada y es indescifrable sin tu contraseña.
  *
- * Formato del archivo del baúl (JSON, texto plano de la ESTRUCTURA, no del contenido):
- *   {
- *     "version": 1,
- *     "kdf": "PBKDF2-SHA256",
- *     "iterations": 600000,
- *     "salt": "<base64>",
- *     "iv": "<base64>",
- *     "ciphertext": "<base64>"   // AES-GCM de { entries: [...] }
- *   }
+ * Derivación (determinista para que cualquier dispositivo obtenga las mismas llaves):
+ *   masterBits   = PBKDF2-SHA256(password, salt = "baul.v2:" + correo, 600.000)
+ *   encKey       = HKDF-SHA256(masterBits, info = "enc")   -> AES-256-GCM
+ *   authPassword = HKDF-SHA256(masterBits, info = "auth")  -> hex de 64 chars
+ *
+ * Formato del archivo cifrado que se guarda en la nube (JSON):
+ *   { "version": 2, "iv": "<base64>", "ciphertext": "<base64>" }
+ *   (No hace falta guardar salt: se recalcula desde el correo. El iv es aleatorio
+ *    por cada guardado, como exige AES-GCM.)
  */
 
 const Vault = (() => {
-  const VERSION = 1;
-  const KDF = "PBKDF2-SHA256";
-  // OWASP (2023) recomienda >= 600.000 iteraciones para PBKDF2-HMAC-SHA256.
-  const ITERATIONS = 600_000;
-  const SALT_BYTES = 16;
-  const IV_BYTES = 12; // 96 bits, recomendado para AES-GCM
+  const ITERATIONS = 600_000; // OWASP 2023 para PBKDF2-HMAC-SHA256
+  const IV_BYTES = 12;        // 96 bits, recomendado para AES-GCM
 
   const enc = new TextEncoder();
   const dec = new TextDecoder();
 
-  // ---- Helpers base64 <-> ArrayBuffer ----
+  // Constantes públicas (no secretas) para HKDF.
+  const HKDF_SALT = enc.encode("baul.v2.hkdf.salt");
+  const ENC_INFO = enc.encode("baul.v2.enc");
+  const AUTH_INFO = enc.encode("baul.v2.auth");
+
+  // ---- Helpers base64 / hex <-> ArrayBuffer ----
   function bufToB64(buf) {
     const bytes = new Uint8Array(buf);
     let bin = "";
@@ -43,84 +44,78 @@ const Vault = (() => {
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return bytes.buffer;
   }
+  function bufToHex(buf) {
+    const bytes = new Uint8Array(buf);
+    let s = "";
+    for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, "0");
+    return s;
+  }
 
-  // ---- Derivación de llave desde la contraseña maestra ----
-  async function deriveKey(password, salt, iterations = ITERATIONS) {
+  // ---- Derivación de llaves desde contraseña + correo ----
+  async function deriveMasterBits(password, email) {
     const baseKey = await crypto.subtle.importKey(
-      "raw",
-      enc.encode(password),
-      { name: "PBKDF2" },
-      false,
-      ["deriveKey"]
+      "raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]
     );
-    return crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
-      baseKey,
+    const salt = enc.encode("baul.v2:" + String(email || "").trim().toLowerCase());
+    return crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt, iterations: ITERATIONS, hash: "SHA-256" },
+      baseKey, 256
+    );
+  }
+
+  /**
+   * Deriva las dos llaves. Determinista: mismo (correo, contraseña) => mismas llaves,
+   * en cualquier dispositivo.
+   * @returns {Promise<{encKey: CryptoKey, authPassword: string}>}
+   */
+  async function deriveKeys(password, email) {
+    const masterBits = await deriveMasterBits(password, email);
+    const hkdfKey = await crypto.subtle.importKey(
+      "raw", masterBits, { name: "HKDF" }, false, ["deriveKey", "deriveBits"]
+    );
+    const encKey = await crypto.subtle.deriveKey(
+      { name: "HKDF", hash: "SHA-256", salt: HKDF_SALT, info: ENC_INFO },
+      hkdfKey,
       { name: "AES-GCM", length: 256 },
-      false, // no exportable: la llave no puede salir del navegador
+      false, // no exportable
       ["encrypt", "decrypt"]
     );
-  }
-
-  /**
-   * Crea un baúl cifrado nuevo (o re-cifra datos existentes) con una contraseña.
-   * @param {string} password  contraseña maestra
-   * @param {object} data       { entries: [...] }
-   * @returns {object} estructura del archivo del baúl
-   */
-  async function encryptVault(password, data) {
-    const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-    const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
-    const key = await deriveKey(password, salt);
-    const plaintext = enc.encode(JSON.stringify(data));
-    const ciphertext = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      plaintext
+    const authBits = await crypto.subtle.deriveBits(
+      { name: "HKDF", hash: "SHA-256", salt: HKDF_SALT, info: AUTH_INFO },
+      hkdfKey, 256
     );
-    return {
-      version: VERSION,
-      kdf: KDF,
-      iterations: ITERATIONS,
-      salt: bufToB64(salt),
-      iv: bufToB64(iv),
-      ciphertext: bufToB64(ciphertext),
-    };
+    return { encKey, authPassword: bufToHex(authBits) };
   }
 
-  /**
-   * Descifra un baúl. Lanza error si la contraseña es incorrecta o el archivo
-   * fue manipulado (AES-GCM falla la verificación de integridad).
-   * @returns {object} data descifrado { entries: [...] }
-   */
-  async function decryptVault(password, file) {
-    if (!file || file.version !== VERSION) {
-      throw new Error("Formato de baúl no reconocido.");
+  // ---- Cifrado / descifrado con una llave ya derivada ----
+  async function encryptWithKey(encKey, data) {
+    const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv }, encKey, enc.encode(JSON.stringify(data))
+    );
+    return { version: 2, iv: bufToB64(iv), ciphertext: bufToB64(ciphertext) };
+  }
+
+  async function decryptWithKey(encKey, file) {
+    if (!file || file.version !== 2 || !file.iv || !file.ciphertext) {
+      throw new Error("Formato de bóveda no reconocido.");
     }
-    const salt = new Uint8Array(b64ToBuf(file.salt));
     const iv = new Uint8Array(b64ToBuf(file.iv));
-    const key = await deriveKey(password, salt, file.iterations || ITERATIONS);
     try {
       const plaintext = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv },
-        key,
-        b64ToBuf(file.ciphertext)
+        { name: "AES-GCM", iv }, encKey, b64ToBuf(file.ciphertext)
       );
       return JSON.parse(dec.decode(plaintext));
     } catch (e) {
-      // GCM lanza si la llave (contraseña) es incorrecta o el dato fue alterado.
-      throw new Error("Contraseña maestra incorrecta o archivo dañado.");
+      // GCM falla si la llave (contraseña) es incorrecta o el dato fue alterado.
+      throw new Error("Contraseña maestra incorrecta o datos dañados.");
     }
   }
 
   // ---- Generador de contraseñas fuertes (aleatoriedad criptográfica) ----
   function generatePassword(opts = {}) {
     const {
-      length = 20,
-      lower = true,
-      upper = true,
-      digits = true,
-      symbols = true,
+      length = 20, lower = true, upper = true, digits = true, symbols = true,
     } = opts;
     let pool = "";
     if (lower) pool += "abcdefghijkmnopqrstuvwxyz"; // sin l
@@ -152,8 +147,9 @@ const Vault = (() => {
   }
 
   return {
-    encryptVault,
-    decryptVault,
+    deriveKeys,
+    encryptWithKey,
+    decryptWithKey,
     generatePassword,
     estimateStrength,
   };

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#0d0f16" />
-  <title>Baúl · Gestor de contraseñas</title>
+  <title>Bóveda · Gestor de contraseñas</title>
 
   <!-- Tema automático según el día y la noche: claro de día, oscuro de noche.
        Se aplica antes de cargar el CSS para que no haya parpadeo. -->
@@ -31,28 +31,40 @@
 </head>
 <body>
   <div id="app">
-    <!-- ============ PANTALLA DE BLOQUEO ============ -->
-    <section id="lock-screen" class="screen">
+    <!-- ============ PANTALLA DE ACCESO (login / registro) ============ -->
+    <section id="auth-screen" class="screen">
       <div class="card lock-card">
         <div class="logo">🔐</div>
-        <h1>Baúl</h1>
-        <p class="subtitle" id="lock-subtitle">Ingresa tu contraseña maestra</p>
+        <h1>Bóveda</h1>
+        <p class="subtitle" id="auth-subtitle">Inicia sesión para abrir tu bóveda</p>
 
-        <form id="unlock-form" autocomplete="off">
+        <!-- Aviso si falta configurar Supabase -->
+        <p class="warn" id="setup-warn" hidden>
+          ⚙️ Falta configurar la nube. Edita <strong>config.js</strong> con los datos de
+          tu proyecto de Supabase (ver README). Mientras tanto no podrás iniciar sesión.
+        </p>
+
+        <form id="auth-form" autocomplete="off">
+          <label class="field">
+            <span>Correo</span>
+            <input type="email" id="auth-email" autocomplete="username"
+                   inputmode="email" spellcheck="false" placeholder="tucorreo@ejemplo.com" />
+          </label>
+
           <label class="field">
             <span>Contraseña maestra</span>
             <div class="pw-input">
-              <input type="password" id="master-password" autocomplete="off"
-                     autofocus spellcheck="false" />
-              <button type="button" class="ghost reveal" data-target="master-password"
+              <input type="password" id="auth-password" autocomplete="current-password"
+                     spellcheck="false" />
+              <button type="button" class="ghost reveal" data-target="auth-password"
                       title="Mostrar/ocultar">👁</button>
             </div>
           </label>
 
-          <!-- Solo en la creación del baúl -->
+          <!-- Solo al crear la cuenta -->
           <label class="field" id="confirm-field" hidden>
             <span>Confirmar contraseña maestra</span>
-            <input type="password" id="master-password-confirm" autocomplete="off"
+            <input type="password" id="auth-password-confirm" autocomplete="new-password"
                    spellcheck="false" />
           </label>
 
@@ -61,14 +73,23 @@
             <small id="strength-label"></small>
           </div>
 
-          <p class="error" id="lock-error" hidden></p>
+          <p class="error" id="auth-error" hidden></p>
+          <p class="ok-msg" id="auth-info" hidden></p>
 
-          <button type="submit" class="primary" id="unlock-btn">Desbloquear</button>
+          <button type="submit" class="primary" id="auth-btn">Entrar</button>
         </form>
 
-        <p class="warn" id="new-vault-warn" hidden>
-          ⚠️ No hay forma de recuperar tu baúl si olvidas la contraseña maestra.
-          No se guarda en ningún lado. Anótala en un lugar seguro.
+        <p class="warn" id="new-account-warn" hidden>
+          ⚠️ Tu contraseña maestra cifra toda la bóveda y <strong>no se puede recuperar</strong>.
+          Si la olvidas, pierdes el acceso. Guárdala en un lugar seguro.
+        </p>
+
+        <p class="switch-line">
+          <span id="switch-text">¿No tienes cuenta?</span>
+          <button type="button" class="link" id="switch-mode">Crear una</button>
+        </p>
+        <p class="switch-line" id="reunlock-line" hidden>
+          <button type="button" class="link" id="use-other">Usar otra cuenta</button>
         </p>
       </div>
     </section>
@@ -76,11 +97,11 @@
     <!-- ============ APP PRINCIPAL ============ -->
     <section id="main-screen" class="screen" hidden>
       <header class="topbar">
-        <div class="brand">🔐 Baúl</div>
+        <div class="brand">🔐 Bóveda</div>
         <div class="toolbar">
           <input type="search" id="search" placeholder="Buscar…" autocomplete="off" />
           <button class="primary" id="add-btn">＋ Nueva</button>
-          <button class="ghost" id="sync-btn" title="Sincronizar con GitHub">☁ Sync</button>
+          <button class="ghost" id="sync-btn" title="Sincronizar">⟳</button>
           <button class="ghost" id="settings-btn" title="Ajustes">⚙</button>
           <button class="ghost" id="lock-now-btn" title="Bloquear">🔒</button>
         </div>
@@ -90,7 +111,7 @@
 
       <main id="entries" class="entries"></main>
       <p id="empty-state" class="empty" hidden>
-        Tu baúl está vacío. Pulsa <strong>＋ Nueva</strong> para agregar tu primera entrada.
+        Tu bóveda está vacía. Pulsa <strong>＋ Nueva</strong> para agregar tu primera entrada.
       </p>
     </section>
   </div>
@@ -137,43 +158,19 @@
     </form>
   </dialog>
 
-  <!-- ============ MODAL: AJUSTES / SYNC ============ -->
+  <!-- ============ MODAL: AJUSTES ============ -->
   <dialog id="settings-dialog">
     <form method="dialog" id="settings-form">
       <h2>Ajustes</h2>
 
       <fieldset>
-        <legend>Sincronización con GitHub (repo privado)</legend>
-        <p class="hint">
-          Solo se sube el archivo <strong>cifrado</strong>. GitHub nunca ve tus contraseñas.
-        </p>
-        <label class="field">
-          <span>Repositorio (usuario/repo)</span>
-          <input type="text" id="gh-repo" placeholder="tuusuario/mi-baul" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Ruta del archivo</span>
-          <input type="text" id="gh-path" placeholder="baul.vault.json" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Rama</span>
-          <input type="text" id="gh-branch" placeholder="main" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Token de acceso (fine-grained PAT, permiso Contents: Read/Write)</span>
-          <div class="pw-input">
-            <input type="password" id="gh-token" autocomplete="off" spellcheck="false" />
-            <button type="button" class="ghost reveal" data-target="gh-token" title="Mostrar/ocultar">👁</button>
-          </div>
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" id="gh-remember" />
-          <span>Recordar token en este navegador (localStorage)</span>
-        </label>
+        <legend>Cuenta</legend>
+        <p class="hint">Sesión iniciada como <strong id="account-email">—</strong></p>
         <p class="hint small">
-          El baúl está cifrado, así que el token solo da acceso al repo, no a tus contraseñas.
-          Aun así, en un equipo compartido déjalo sin recordar.
+          Tu bóveda está en la nube (cifrada). Inicia sesión con este mismo correo y
+          contraseña en cualquier dispositivo para verla.
         </p>
+        <button type="button" class="ghost danger" id="signout-btn">Cerrar sesión</button>
       </fieldset>
 
       <fieldset>
@@ -185,10 +182,10 @@
       </fieldset>
 
       <fieldset>
-        <legend>Respaldo local</legend>
+        <legend>Respaldo local (cifrado)</legend>
         <div class="row">
-          <button type="button" class="ghost" id="export-btn">⬇ Exportar cifrado</button>
-          <button type="button" class="ghost" id="import-btn">⬆ Importar cifrado</button>
+          <button type="button" class="ghost" id="export-btn">⬇ Exportar</button>
+          <button type="button" class="ghost" id="import-btn">⬆ Importar</button>
           <input type="file" id="import-file" accept=".json" hidden />
         </div>
       </fieldset>
@@ -202,8 +199,11 @@
 
   <div id="toast" class="toast" hidden></div>
 
+  <!-- Librería de Supabase (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="crypto.js"></script>
-  <script src="github.js"></script>
+  <script src="supabase.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
