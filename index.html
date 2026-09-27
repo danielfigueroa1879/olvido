@@ -1,11 +1,32 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="color-scheme" content="dark" />
+  <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#0d0f16" />
   <title>Baúl · Gestor de contraseñas</title>
+
+  <!-- Tema automático según el día y la noche: claro de día, oscuro de noche.
+       Se aplica antes de cargar el CSS para que no haya parpadeo. -->
+  <script>
+    (function () {
+      function applyAutoTheme() {
+        var h = new Date().getHours();
+        var isDay = h >= 7 && h < 19;                 // 07:00–18:59 = día
+        document.documentElement.setAttribute("data-theme", isDay ? "light" : "dark");
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", isDay ? "#eef1f6" : "#0d0f16");
+      }
+      applyAutoTheme();
+      window.__applyAutoTheme = applyAutoTheme;
+      setInterval(applyAutoTheme, 10 * 60 * 1000);     // reevalúa cada 10 min
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) applyAutoTheme();          // al volver a la pestaña
+      });
+    })();
+  </script>
+
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
