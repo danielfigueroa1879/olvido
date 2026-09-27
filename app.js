@@ -1022,7 +1022,15 @@
     // Modal entrada
     $("#entry-form").addEventListener("submit", () => saveEntryFromForm());
     $("#entry-cancel").onclick = () => $("#entry-dialog").close();
-    $("#entry-category").addEventListener("change", toggleCustomCat);
+    $("#entry-category").addEventListener("change", () => {
+      toggleCustomCat();
+      // Al elegir "Otros", lleva el cursor directo al campo de escritura.
+      if ($("#entry-category").value === "Otros") {
+        const c = $("#entry-category-custom");
+        c.focus();
+        c.select();
+      }
+    });
     // (los botones copiar/eliminar del detalle se conectan en openEntryDialog)
     $("#gen-btn").onclick = () => {
       const pw = Vault.generatePassword({ length: 20 });
