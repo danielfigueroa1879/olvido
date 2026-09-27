@@ -148,6 +148,11 @@
       <h2 id="entry-dialog-title">Nueva entrada</h2>
       <input type="hidden" id="entry-id" />
 
+      <div class="detail-actions" id="detail-actions" hidden>
+        <button type="button" class="ghost" id="detail-copy-user">👤 Copiar usuario</button>
+        <button type="button" class="ghost" id="detail-copy-pass">🔑 Copiar contraseña</button>
+      </div>
+
       <label class="field">
         <span>Título / Servicio</span>
         <input type="text" id="entry-title" required placeholder="Ej: Gmail" />
@@ -178,6 +183,7 @@
       </label>
 
       <menu class="dialog-actions">
+        <button type="button" class="ghost danger" id="entry-delete" hidden>🗑 Eliminar</button>
         <button type="button" class="ghost" value="cancel" id="entry-cancel">Cancelar</button>
         <button type="submit" class="primary" id="entry-save">Guardar</button>
       </menu>
@@ -211,10 +217,19 @@
       </fieldset>
 
       <fieldset>
+        <legend>Importar contraseñas</legend>
+        <p class="hint small">
+          Pega una lista desde una hoja (texto, CSV, PDF o Word) y el sistema
+          ordena y numera cada contraseña automáticamente.
+        </p>
+        <button type="button" class="ghost" id="bulk-import-btn">📋 Pegar / importar lista</button>
+      </fieldset>
+
+      <fieldset>
         <legend>Respaldo local (cifrado)</legend>
         <div class="row">
           <button type="button" class="ghost" id="export-btn">⬇ Exportar</button>
-          <button type="button" class="ghost" id="import-btn">⬆ Importar</button>
+          <button type="button" class="ghost" id="import-btn">⬆ Importar respaldo</button>
           <input type="file" id="import-file" accept=".json" hidden />
         </div>
       </fieldset>
@@ -261,6 +276,41 @@
       <menu class="dialog-actions">
         <button type="button" class="ghost" value="cancel" id="password-cancel">Cancelar</button>
         <button type="submit" class="primary" id="password-save">Cambiar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL: IMPORTAR LISTA ============ -->
+  <dialog id="import-dialog">
+    <form method="dialog" id="import-form">
+      <h2>Importar contraseñas</h2>
+      <p class="hint">
+        Pega el texto de tu hoja o sube un archivo (.txt, .csv, .pdf, .docx).
+        El sistema detecta cada dato, lo ordena y numera cada contraseña.
+      </p>
+
+      <div class="row">
+        <button type="button" class="ghost" id="import-file2-btn">📄 Subir archivo</button>
+        <input type="file" id="import-file2" accept=".txt,.csv,.pdf,.docx,.doc" hidden />
+      </div>
+
+      <label class="field">
+        <span>Pega aquí tu texto</span>
+        <textarea id="import-text" rows="7" spellcheck="false"
+          placeholder="Ejemplos válidos:&#10;Gmail | yo@gmail.com | miClave123&#10;Facebook, usuario, clave-secreta&#10;&#10;Título: Banco&#10;Usuario: 12345&#10;Contraseña: abcd"></textarea>
+      </label>
+
+      <div class="row">
+        <button type="button" class="primary" id="import-analyze">🔎 Analizar</button>
+      </div>
+
+      <div id="import-preview" class="import-preview" hidden></div>
+      <p class="error" id="import-error" hidden></p>
+      <p class="ok-msg" id="import-status" hidden></p>
+
+      <menu class="dialog-actions">
+        <button type="button" class="ghost" value="cancel" id="import-cancel">Cerrar</button>
+        <button type="button" class="primary" id="import-confirm" hidden>Importar</button>
       </menu>
     </form>
   </dialog>
