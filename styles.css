@@ -437,13 +437,31 @@ input:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 10px 4px;
+  width: 100%;
+  margin: 0 0 10px 0;
+  padding: 4px 4px;
+  min-height: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
+  text-align: left;
 }
+.group-title:hover { color: var(--text); }
+.group-chevron {
+  font-size: 17px;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform .18s ease;
+  display: inline-block;
+}
+/* Abierto: la flecha apunta hacia abajo. Cerrado (colapsado): a la derecha. */
+.group:not(.collapsed) .group-chevron { transform: rotate(90deg); }
+.group-name { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .group-count {
   display: inline-flex;
   align-items: center;

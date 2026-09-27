@@ -17,6 +17,7 @@
     LAST_EMAIL: "baul.last_email",   // último correo usado (para prellenar)
     SETTINGS: "baul.settings",       // ajustes locales (auto-bloqueo)
     CACHE_PREFIX: "baul.cache.",      // caché cifrada por correo
+    COLLAPSED: "baul.collapsed",     // categorías plegadas (por dispositivo)
   };
 
   // Categorías conocidas (van primero, en este orden). El usuario puede crear
@@ -49,6 +50,7 @@
   let settings = { autolockMin: 5 };
   let autolockTimer = null;
   let mode = "signin";       // "signin" | "signup" | "unlock"
+  let collapsedCats = new Set(); // categorías plegadas (colapsadas)
 
   // ---- Helpers DOM ----
   const $ = (sel) => document.querySelector(sel);
@@ -97,6 +99,14 @@
       const s = JSON.parse(localStorage.getItem(LS.SETTINGS) || "{}");
       settings = { ...settings, ...s };
     } catch {}
+    try {
+      const c = JSON.parse(localStorage.getItem(LS.COLLAPSED) || "[]");
+      if (Array.isArray(c)) collapsedCats = new Set(c);
+    } catch {}
+  }
+
+  function saveCollapsed() {
+    try { localStorage.setItem(LS.COLLAPSED, JSON.stringify([...collapsedCats])); } catch {}
   }
 
   // =====================================================================
@@ -447,22 +457,42 @@
           (a.title || "").localeCompare(b.title || ""));
       if (!group.length) continue;
 
+      const isCollapsed = collapsedCats.has(cat);
       const section = document.createElement("section");
-      section.className = "group";
-      const h = document.createElement("h3");
+      section.className = "group" + (isCollapsed ? " collapsed" : "");
+
+      const h = document.createElement("button");
+      h.type = "button";
       h.className = "group-title";
-      h.innerHTML = `<span>${escapeHtml(cat)}</span><span class="group-count">${group.length}</span>`;
+      h.setAttribute("aria-expanded", String(!isCollapsed));
+      h.innerHTML = `
+        <span class="group-chevron" aria-hidden="true">›</span>
+        <span class="group-name">${escapeHtml(cat)}</span>
+        <span class="group-count">${group.length}</span>`;
+      h.onclick = () => toggleGroup(cat, section, h);
       section.appendChild(h);
 
       const glist = document.createElement("div");
       glist.className = "group-list";
       glist.dataset.cat = cat;
+      glist.hidden = isCollapsed;
       for (const en of group) { n++; glist.appendChild(buildRow(en, n)); }
       section.appendChild(glist);
       list.appendChild(section);
     }
 
     initSortables();
+  }
+
+  // Plegar / desplegar una categoría (chevron a la derecha → gira hacia abajo).
+  function toggleGroup(cat, section, btn) {
+    const nowCollapsed = !collapsedCats.has(cat);
+    if (nowCollapsed) collapsedCats.add(cat); else collapsedCats.delete(cat);
+    section.classList.toggle("collapsed", nowCollapsed);
+    const gl = section.querySelector(".group-list");
+    if (gl) gl.hidden = nowCollapsed;
+    if (btn) btn.setAttribute("aria-expanded", String(!nowCollapsed));
+    saveCollapsed();
   }
 
   // ---- Arrastrar para ordenar (SortableJS) ----
