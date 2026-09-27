@@ -536,17 +536,40 @@
     return sel;
   }
 
+  // Todas las categorías disponibles: conocidas + las que el usuario ya creó.
+  function allCategories() {
+    const set = new Set(KNOWN_CATEGORIES);
+    for (const en of entries) {
+      if (en && !en.deleted) { const c = catOf(en); if (c !== "Otros") set.add(c); }
+    }
+    const customs = [...set].filter((c) => !KNOWN_CATEGORIES.includes(c)).sort((a, b) => a.localeCompare(b));
+    return [...KNOWN_CATEGORIES, ...customs];
+  }
+
+  // Rellena el desplegable con las categorías (incluidas las creadas por el usuario).
+  function populateCategorySelect(selected) {
+    const sel = $("#entry-category");
+    sel.innerHTML = "";
+    for (const c of allCategories()) {
+      const o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    }
+    const other = document.createElement("option");
+    other.value = "Otros"; other.textContent = "Otros (escribir…)";
+    sel.appendChild(other);
+    sel.value = (selected && [...sel.options].some((o) => o.value === selected)) ? selected : "Otros";
+  }
+
   function openEntryDialog(entry = null) {
     const dlg = $("#entry-dialog");
     $("#entry-dialog-title").textContent = entry ? "Editar entrada" : "Nueva entrada";
     $("#entry-id").value = entry?.id || "";
     $("#entry-title").value = entry?.title || "";
-    // Categoría: si es una conocida, se elige; si es personalizada, se elige
-    // "Otros" y se rellena el campo de texto con su nombre.
-    const cat = catOf(entry || {});
-    const known = KNOWN_CATEGORIES.includes(cat);
-    $("#entry-category").value = known ? cat : "Otros";
-    $("#entry-category-custom").value = known ? "" : (cat === "Otros" ? "" : cat);
+    // Categoría: el desplegable incluye las categorías que ya creaste, así puedes
+    // reutilizarlas. Solo "Otros" abre el campo para escribir una nueva.
+    populateCategorySelect(entry ? catOf(entry) : "Otros");
+    $("#entry-category-custom").value = "";
     toggleCustomCat();
     $("#entry-url").value = entry?.url || "";
     $("#entry-username").value = entry?.username || "";
