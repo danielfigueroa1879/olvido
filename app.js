@@ -400,7 +400,13 @@
     const ini = initial(title);
     const color = avatarColor(title);
     card.innerHTML = `
-      <span class="entry-grip" title="Arrastra para ordenar" aria-label="Mover">⠿</span>
+      <span class="entry-grip" title="Arrastra para ordenar" aria-label="Mover">
+        <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true">
+          <circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/>
+          <circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/>
+          <circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/>
+        </svg>
+      </span>
       <span class="entry-num">${n}</span>
       <div class="entry-avatar" style="background:${color}">${escapeHtml(ini)}</div>
       <button type="button" class="entry-open" data-act="open">
