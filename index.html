@@ -5,7 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#0d0f16" />
-  <title>Bóveda · Gestor de contraseñas</title>
+  <title>Bóveda Olvido</title>
+  <meta name="description" content="Tu bóveda de contraseñas cifrada, en la nube. Ábrela con tu correo y contraseña desde cualquier dispositivo." />
+
+  <!-- Iconos y PWA -->
+  <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="favicon/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bóveda Olvido" />
 
   <!-- Tema automático según el día y la noche: claro de día, oscuro de noche.
        Se aplica antes de cargar el CSS para que no haya parpadeo. -->
@@ -25,6 +37,13 @@
         if (!document.hidden) applyAutoTheme();          // al volver a la pestaña
       });
     })();
+
+    // Captura temprana del evento de instalación (puede dispararse antes del CSS/JS).
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      window.__bip = e;
+      window.dispatchEvent(new Event("bip-ready"));
+    });
   </script>
 
   <link rel="stylesheet" href="styles.css" />
@@ -35,7 +54,7 @@
     <section id="auth-screen" class="screen">
       <div class="card lock-card">
         <div class="logo">🔐</div>
-        <h1>Bóveda</h1>
+        <h1>Bóveda Olvido</h1>
         <p class="subtitle" id="auth-subtitle">Inicia sesión para abrir tu bóveda</p>
 
         <!-- Aviso si falta configurar Supabase -->
@@ -92,12 +111,19 @@
           <button type="button" class="link" id="use-other">Usar otra cuenta</button>
         </p>
       </div>
+
+      <!-- Instalación como app -->
+      <button type="button" class="ghost install-btn" id="install-btn" hidden>⬇ Instalar app</button>
+      <p class="ios-hint" id="ios-hint" hidden>
+        📲 Para instalar en iPhone: toca <strong>Compartir</strong> y luego
+        <strong>“Añadir a inicio”</strong>.
+      </p>
     </section>
 
     <!-- ============ APP PRINCIPAL ============ -->
     <section id="main-screen" class="screen" hidden>
       <header class="topbar">
-        <div class="brand">🔐 Bóveda</div>
+        <div class="brand">🔐 Bóveda Olvido</div>
         <div class="toolbar">
           <input type="search" id="search" placeholder="Buscar…" autocomplete="off" />
           <button class="primary" id="add-btn">＋ Nueva</button>
@@ -247,5 +273,66 @@
   <script src="crypto.js"></script>
   <script src="supabase.js"></script>
   <script src="app.js"></script>
+
+  <!-- PWA: service worker + botón de instalar -->
+  <script>
+    (function () {
+      // Registro del service worker (offline + instalable).
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("sw.js").catch(function () {});
+        });
+      }
+
+      var isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+                         window.navigator.standalone === true;
+
+      function el(id) { return document.getElementById(id); }
+
+      function showInstallButton() {
+        if (isStandalone) return;
+        var b = el("install-btn");
+        if (b && window.__bip) b.hidden = false;
+      }
+
+      function setup() {
+        if (isStandalone) return; // ya instalada: no molestar
+
+        // Android/Chrome/Edge: botón de instalar nativo.
+        var b = el("install-btn");
+        if (b) {
+          b.addEventListener("click", async function () {
+            var e = window.__bip;
+            if (!e) return;
+            e.prompt();
+            try { await e.userChoice; } catch (_) {}
+            window.__bip = null;
+            b.hidden = true;
+          });
+        }
+        window.addEventListener("bip-ready", showInstallButton);
+        showInstallButton();
+
+        window.addEventListener("appinstalled", function () {
+          if (b) b.hidden = true;
+        });
+
+        // iOS (Safari no soporta el botón): mostrar instrucciones.
+        var ua = navigator.userAgent || "";
+        var isIOS = /iphone|ipad|ipod/i.test(ua);
+        var isSafari = /^((?!chrome|crios|fxios|edgios).)*safari/i.test(ua);
+        if (isIOS && isSafari) {
+          var h = el("ios-hint");
+          if (h) h.hidden = false;
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setup);
+      } else {
+        setup();
+      }
+    })();
+  </script>
 </body>
 </html>
