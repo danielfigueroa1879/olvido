@@ -188,7 +188,8 @@
     const list = $("#entries");
     list.innerHTML = "";
     const q = filter.trim().toLowerCase();
-    const items = entries
+    const active = entries.filter((en) => en && !en.deleted);
+    const items = active
       .filter((en) =>
         !q ||
         (en.title || "").toLowerCase().includes(q) ||
@@ -196,16 +197,17 @@
         (en.url || "").toLowerCase().includes(q))
       .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 
-    $("#empty-state").hidden = entries.length !== 0;
+    $("#empty-state").hidden = active.length !== 0;
 
     for (const en of items) {
       const card = document.createElement("article");
       card.className = "entry";
+      const href = safeUrl(en.url);
       card.innerHTML = `
         <div class="entry-main">
           <div class="entry-title">${escapeHtml(en.title || "(sin título)")}</div>
           <div class="entry-sub">${escapeHtml(en.username || "")}</div>
-          ${en.url ? `<a class="entry-url" href="${escapeAttr(en.url)}" target="_blank" rel="noopener">${escapeHtml(en.url)}</a>` : ""}
+          ${href ? `<a class="entry-url" href="${escapeAttr(href)}" target="_blank" rel="noopener">${escapeHtml(en.url)}</a>` : ""}
         </div>
         <div class="entry-actions">
           <button class="ghost" data-act="copy-user" title="Copiar usuario">👤</button>
@@ -256,10 +258,13 @@
   }
 
   async function deleteEntry(id) {
-    const en = entries.find((x) => x.id === id);
-    if (!en) return;
-    if (!confirm(`¿Eliminar "${en.title}"? Esta acción no se puede deshacer.`)) return;
-    entries = entries.filter((x) => x.id !== id);
+    const idx = entries.findIndex((x) => x.id === id && !x.deleted);
+    if (idx < 0) return;
+    if (!confirm(`¿Eliminar "${entries[idx].title}"? Esta acción no se puede deshacer.`)) return;
+    // Tombstone: marca como borrada en vez de quitarla, para que al fusionar
+    // con otro dispositivo (o el remoto) la eliminación no se revierta.
+    // Se limpian los datos sensibles; solo queda id/deleted/updatedAt.
+    entries[idx] = { id, deleted: true, updatedAt: new Date().toISOString() };
     await saveVault({ pushRemote: true });
     render($("#search").value);
     toast("Eliminado");
@@ -329,6 +334,24 @@
     if (kind === "ok") setTimeout(() => (el.hidden = true), 2500);
   }
 
+  /**
+   * Fusiona dos listas de entradas SIN perder datos.
+   * Regla: por cada id gana la versión con updatedAt más reciente.
+   * Los tombstones (deleted) participan igual, así una eliminación reciente
+   * no revive al fusionar con un dispositivo que aún tenía la entrada.
+   */
+  function mergeEntries(a, b) {
+    const map = new Map();
+    for (const en of [...(a || []), ...(b || [])]) {
+      if (!en || !en.id) continue;
+      const prev = map.get(en.id);
+      if (!prev || (en.updatedAt || "") >= (prev.updatedAt || "")) {
+        map.set(en.id, en);
+      }
+    }
+    return [...map.values()];
+  }
+
   async function syncPull(silent = false) {
     if (!settings.repo || !ghToken) {
       if (!silent) toast("Configura GitHub en Ajustes");
@@ -342,12 +365,15 @@
 
       const file = JSON.parse(remote.content);
       const data = await Vault.decryptVault(masterPassword, file);
-      entries = Array.isArray(data.entries) ? data.entries : [];
+      const remoteEntries = Array.isArray(data.entries) ? data.entries : [];
+      // FUSIÓN: nunca sobreescribe lo local; combina por id/updatedAt.
+      entries = mergeEntries(entries, remoteEntries);
       remoteSha = remote.sha;
       localStorage.setItem(LS.SHA, remoteSha);
-      localStorage.setItem(LS.VAULT, remote.content);
+      // Guarda localmente el resultado de la fusión (re-cifrado con la maestra).
+      await saveVault();
       render($("#search").value);
-      syncMsg("Sincronizado desde GitHub ✓", "ok");
+      if (!silent) syncMsg("Sincronizado desde GitHub ✓", "ok");
     } catch (err) {
       syncMsg("Error al bajar: " + err.message, "err");
     }
@@ -367,11 +393,11 @@
   }
 
   async function syncNow() {
-    // Estrategia simple: bajar remoto, y si el nuestro es más nuevo, subir.
+    // Baja y FUSIONA con lo local, luego sube el baúl ya fusionado.
+    // Así dos dispositivos no se pisan: se combinan sus cambios por updatedAt.
     if (!settings.repo || !ghToken) return toast("Configura GitHub en Ajustes");
     await syncPull();
-    const file = await Vault.encryptVault(masterPassword, { entries });
-    await syncPush(JSON.stringify(file, null, 2));
+    await saveVault({ pushRemote: true });
   }
 
   // =====================================================================
@@ -457,6 +483,22 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
   function escapeAttr(s) { return escapeHtml(s); }
+
+  /**
+   * Devuelve una URL segura para usar en href, o "" si no lo es.
+   * Solo se permiten http/https (bloquea javascript:, data:, etc.).
+   * Si el usuario no escribió esquema, se asume https://.
+   */
+  function safeUrl(u) {
+    const raw = (u || "").trim();
+    if (!raw) return "";
+    const candidate = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw) ? raw : "https://" + raw;
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") return candidate;
+    } catch {}
+    return "";
+  }
 
   document.addEventListener("DOMContentLoaded", init);
 })();
