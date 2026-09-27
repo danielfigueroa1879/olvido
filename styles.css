@@ -1,0 +1,225 @@
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-2: #232733;
+  --border: #2e3444;
+  --text: #e7e9ee;
+  --muted: #9aa1b1;
+  --primary: #6c8cff;
+  --primary-hover: #5677f0;
+  --danger: #ff6b6b;
+  --ok: #4cd964;
+  --warn: #ffcc4d;
+  --radius: 12px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f5f8;
+    --surface: #ffffff;
+    --surface-2: #f0f2f6;
+    --border: #dfe3ea;
+    --text: #1b1e26;
+    --muted: #6b7280;
+    --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.screen { min-height: 100vh; }
+
+/* ---------- Pantalla de bloqueo ---------- */
+#lock-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.lock-card { width: 100%; max-width: 380px; text-align: center; }
+.logo { font-size: 46px; }
+.lock-card h1 { margin: 4px 0 2px; font-size: 28px; }
+.subtitle { color: var(--muted); margin: 0 0 20px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Campos ---------- */
+.field { display: block; text-align: left; margin-bottom: 14px; }
+.field > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+
+input, textarea {
+  width: 100%;
+  padding: 11px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.2);
+}
+textarea { resize: vertical; }
+
+.pw-input { display: flex; gap: 6px; align-items: stretch; }
+.pw-input input { flex: 1; }
+
+.checkbox { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 14px; }
+.checkbox input { width: auto; }
+
+/* ---------- Botones ---------- */
+button {
+  cursor: pointer;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 10px 14px;
+  transition: background .15s, border-color .15s;
+}
+.primary { background: var(--primary); color: #fff; width: 100%; font-weight: 600; }
+.primary:hover { background: var(--primary-hover); }
+.primary:disabled { opacity: .6; cursor: default; }
+.ghost {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+  padding: 9px 11px;
+}
+.ghost:hover { border-color: var(--primary); }
+.ghost.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ---------- Fortaleza ---------- */
+.strength { margin: -4px 0 12px; text-align: left; }
+.strength-bar { height: 6px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.strength-bar span { display: block; height: 100%; width: 0; transition: width .2s; background: var(--danger); }
+.strength-bar span[data-score="2"] { background: var(--warn); }
+.strength-bar span[data-score="3"] { background: #7ac943; }
+.strength-bar span[data-score="4"] { background: var(--ok); }
+.strength small { color: var(--muted); font-size: 12px; }
+
+/* ---------- Mensajes ---------- */
+.error { color: var(--danger); font-size: 14px; margin: 8px 0; }
+.warn {
+  color: var(--warn);
+  font-size: 13px;
+  background: rgba(255, 204, 77, 0.1);
+  border: 1px solid rgba(255, 204, 77, 0.3);
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin-top: 16px;
+  text-align: left;
+}
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.hint.small { font-size: 12px; }
+
+/* ---------- App principal ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-wrap: wrap;
+}
+.brand { font-weight: 700; font-size: 18px; }
+.toolbar { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.toolbar #search { width: 180px; }
+
+.sync-status {
+  padding: 8px 16px;
+  font-size: 13px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.sync-status.ok { color: var(--ok); }
+.sync-status.err { color: var(--danger); }
+
+.entries {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.entry-main { flex: 1; min-width: 0; }
+.entry-title { font-weight: 600; }
+.entry-sub { color: var(--muted); font-size: 13px; }
+.entry-url { color: var(--primary); font-size: 12px; text-decoration: none; word-break: break-all; }
+.entry-url:hover { text-decoration: underline; }
+.entry-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.empty { text-align: center; color: var(--muted); margin-top: 60px; }
+
+/* ---------- Diálogos ---------- */
+dialog {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 24px;
+  width: min(460px, 92vw);
+  box-shadow: var(--shadow);
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+dialog h2 { margin: 0 0 16px; }
+fieldset { border: 1px solid var(--border); border-radius: 9px; margin: 0 0 16px; padding: 12px 14px; }
+legend { color: var(--muted); font-size: 13px; padding: 0 6px; }
+.dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin: 8px 0 0; padding: 0; }
+.dialog-actions button { width: auto; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 18px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  font-size: 14px;
+}
+.toast.ok { border-color: var(--ok); }
+.toast.err { border-color: var(--danger); }
+
+@media (max-width: 520px) {
+  .toolbar #search { width: 100%; order: -1; }
+  .toolbar { width: 100%; }
+}

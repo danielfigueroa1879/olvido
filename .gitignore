@@ -1,0 +1,8 @@
+# Nunca subir baúles reales al repo de código.
+# El baúl cifrado vive en SU PROPIO repo privado.
+*.vault.json
+baul.vault.json
+
+# Config local
+.vscode/
+__pycache__/

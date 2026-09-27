@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baúl · Gestor de contraseñas</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============ PANTALLA DE BLOQUEO ============ -->
+    <section id="lock-screen" class="screen">
+      <div class="card lock-card">
+        <div class="logo">🔐</div>
+        <h1>Baúl</h1>
+        <p class="subtitle" id="lock-subtitle">Ingresa tu contraseña maestra</p>
+
+        <form id="unlock-form" autocomplete="off">
+          <label class="field">
+            <span>Contraseña maestra</span>
+            <div class="pw-input">
+              <input type="password" id="master-password" autocomplete="off"
+                     autofocus spellcheck="false" />
+              <button type="button" class="ghost reveal" data-target="master-password"
+                      title="Mostrar/ocultar">👁</button>
+            </div>
+          </label>
+
+          <!-- Solo en la creación del baúl -->
+          <label class="field" id="confirm-field" hidden>
+            <span>Confirmar contraseña maestra</span>
+            <input type="password" id="master-password-confirm" autocomplete="off"
+                   spellcheck="false" />
+          </label>
+
+          <div id="strength" class="strength" hidden>
+            <div class="strength-bar"><span id="strength-fill"></span></div>
+            <small id="strength-label"></small>
+          </div>
+
+          <p class="error" id="lock-error" hidden></p>
+
+          <button type="submit" class="primary" id="unlock-btn">Desbloquear</button>
+        </form>
+
+        <p class="warn" id="new-vault-warn" hidden>
+          ⚠️ No hay forma de recuperar tu baúl si olvidas la contraseña maestra.
+          No se guarda en ningún lado. Anótala en un lugar seguro.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ APP PRINCIPAL ============ -->
+    <section id="main-screen" class="screen" hidden>
+      <header class="topbar">
+        <div class="brand">🔐 Baúl</div>
+        <div class="toolbar">
+          <input type="search" id="search" placeholder="Buscar…" autocomplete="off" />
+          <button class="primary" id="add-btn">＋ Nueva</button>
+          <button class="ghost" id="sync-btn" title="Sincronizar con GitHub">☁ Sync</button>
+          <button class="ghost" id="settings-btn" title="Ajustes">⚙</button>
+          <button class="ghost" id="lock-now-btn" title="Bloquear">🔒</button>
+        </div>
+      </header>
+
+      <div id="sync-status" class="sync-status" hidden></div>
+
+      <main id="entries" class="entries"></main>
+      <p id="empty-state" class="empty" hidden>
+        Tu baúl está vacío. Pulsa <strong>＋ Nueva</strong> para agregar tu primera entrada.
+      </p>
+    </section>
+  </div>
+
+  <!-- ============ MODAL: ENTRADA ============ -->
+  <dialog id="entry-dialog">
+    <form method="dialog" id="entry-form">
+      <h2 id="entry-dialog-title">Nueva entrada</h2>
+      <input type="hidden" id="entry-id" />
+
+      <label class="field">
+        <span>Título / Servicio</span>
+        <input type="text" id="entry-title" required placeholder="Ej: Gmail" />
+      </label>
+
+      <label class="field">
+        <span>URL</span>
+        <input type="text" id="entry-url" placeholder="https://…" />
+      </label>
+
+      <label class="field">
+        <span>Usuario / Correo</span>
+        <input type="text" id="entry-username" autocomplete="off" />
+      </label>
+
+      <label class="field">
+        <span>Contraseña</span>
+        <div class="pw-input">
+          <input type="password" id="entry-password" autocomplete="off" spellcheck="false" />
+          <button type="button" class="ghost reveal" data-target="entry-password" title="Mostrar/ocultar">👁</button>
+          <button type="button" class="ghost" id="gen-btn" title="Generar contraseña">🎲</button>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Notas</span>
+        <textarea id="entry-notes" rows="3"></textarea>
+      </label>
+
+      <menu class="dialog-actions">
+        <button type="button" class="ghost" value="cancel" id="entry-cancel">Cancelar</button>
+        <button type="submit" class="primary" id="entry-save">Guardar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- ============ MODAL: AJUSTES / SYNC ============ -->
+  <dialog id="settings-dialog">
+    <form method="dialog" id="settings-form">
+      <h2>Ajustes</h2>
+
+      <fieldset>
+        <legend>Sincronización con GitHub (repo privado)</legend>
+        <p class="hint">
+          Solo se sube el archivo <strong>cifrado</strong>. GitHub nunca ve tus contraseñas.
+        </p>
+        <label class="field">
+          <span>Repositorio (usuario/repo)</span>
+          <input type="text" id="gh-repo" placeholder="tuusuario/mi-baul" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Ruta del archivo</span>
+          <input type="text" id="gh-path" placeholder="baul.vault.json" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Rama</span>
+          <input type="text" id="gh-branch" placeholder="main" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Token de acceso (fine-grained PAT, permiso Contents: Read/Write)</span>
+          <div class="pw-input">
+            <input type="password" id="gh-token" autocomplete="off" spellcheck="false" />
+            <button type="button" class="ghost reveal" data-target="gh-token" title="Mostrar/ocultar">👁</button>
+          </div>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="gh-remember" />
+          <span>Recordar token en este navegador (localStorage)</span>
+        </label>
+        <p class="hint small">
+          El baúl está cifrado, así que el token solo da acceso al repo, no a tus contraseñas.
+          Aun así, en un equipo compartido déjalo sin recordar.
+        </p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Auto-bloqueo</legend>
+        <label class="field">
+          <span>Bloquear tras (minutos de inactividad)</span>
+          <input type="number" id="autolock-min" min="1" max="120" value="5" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Respaldo local</legend>
+        <div class="row">
+          <button type="button" class="ghost" id="export-btn">⬇ Exportar cifrado</button>
+          <button type="button" class="ghost" id="import-btn">⬆ Importar cifrado</button>
+          <input type="file" id="import-file" accept=".json" hidden />
+        </div>
+      </fieldset>
+
+      <menu class="dialog-actions">
+        <button type="button" class="ghost" value="cancel" id="settings-cancel">Cerrar</button>
+        <button type="submit" class="primary">Guardar ajustes</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="crypto.js"></script>
+  <script src="github.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
