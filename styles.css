@@ -171,7 +171,7 @@ body {
 .subtitle { color: var(--muted); margin: 0 0 var(--sp-4); font-size: 14.5px; }
 
 .card {
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--surface) 0%, rgba(22, 25, 34, 0.92) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: clamp(18px, 4vw, 26px);
@@ -309,18 +309,26 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
 .link:hover { text-decoration: underline; }
 
-/* Aviso de cifrado en la pantalla de acceso (compacto, legible en ambos temas) */
+/* Aviso de cifrado: chip translúcido oscuro con texto claro.
+   Va sobre la parte oscura del degradado de la tarjeta, así se lee en ambos temas. */
 .secure-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin: var(--sp-3) 0 0;
-  padding: 8px 10px;
+  padding: 9px 12px;
   font-size: 12px;
-  line-height: 1.4;
-  color: var(--text);
+  line-height: 1.35;
+  color: #eaf2ee;
   text-align: center;
-  background: rgba(52, 180, 110, 0.13);
-  border: 1px solid rgba(52, 180, 110, 0.32);
+  background: rgba(10, 14, 20, 0.45);
+  border: 1px solid rgba(70, 209, 127, 0.45);
   border-radius: var(--radius-sm);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
+.secure-note .lock { font-size: 14px; flex-shrink: 0; }
 
 input:disabled {
   opacity: 0.7;
