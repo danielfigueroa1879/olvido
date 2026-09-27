@@ -402,7 +402,7 @@ input:disabled {
     calc(var(--sp-4) + var(--safe-r))
     var(--sp-3)
     calc(var(--sp-4) + var(--safe-l));
-  background: var(--topbar-bg);
+  background: rgba(22, 25, 34, 0.80);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--border);
@@ -413,10 +413,10 @@ input:disabled {
 }
 .brand {
   font-weight: 800;
-  font-size: 20px;
+  font-size: 22px;
   letter-spacing: -0.01em;
   white-space: nowrap;
-  color: var(--text);
+  color: #ffffff; /* siempre blanco sobre la barra oscura */
 }
 .toolbar {
   display: flex;
@@ -813,7 +813,7 @@ legend { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 6px;
 /* Móviles (≈ hasta 430px de ancho) */
 @media (max-width: 430px) {
   body { font-size: 15px; }
-  .brand { font-size: 19px; }
+  .brand { font-size: 21px; }
   .entries { gap: var(--sp-2); }
   .entry { padding: 12px 13px; gap: var(--sp-2); }
   .dialog-actions { flex-direction: column-reverse; }
