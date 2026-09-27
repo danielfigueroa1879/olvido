@@ -419,7 +419,7 @@ input:disabled {
    Lista de entradas
    ===================================================================== */
 .entries {
-  max-width: 820px;
+  max-width: 760px;
   margin: 0 auto;
   padding:
     var(--sp-4)
@@ -428,38 +428,72 @@ input:disabled {
     calc(var(--sp-4) + var(--safe-l));
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-5);
 }
-/* Fila tipo cápsula (estilo lista de perfiles) */
+
+/* Grupos por categoría: un solo panel redondeado con filas separadas */
+.group { }
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.group-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  min-height: 8px;
+}
+
+/* Fila (dentro del panel del grupo) */
 .entry {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 12px 14px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color .15s, transform .1s, box-shadow .15s;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 11px 14px;
+  transition: background .12s;
 }
-.entry:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow);
-  transform: translateY(-1px);
-}
+.entry + .entry { border-top: 1px solid var(--border); }
+.entry:hover { background: var(--surface-2); }
 
-/* Número a la izquierda */
+/* Número (discreto) */
 .entry-num {
   flex-shrink: 0;
-  width: 22px;
+  width: 16px;
   text-align: center;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
+  opacity: 0.7;
   font-variant-numeric: tabular-nums;
 }
 
-/* Agarre de 6 puntos para arrastrar */
+/* Agarre de 6 puntos para arrastrar (discreto) */
 .entry-grip {
   flex-shrink: 0;
   display: flex;
@@ -468,45 +502,32 @@ input:disabled {
   cursor: grab;
   touch-action: none;
   color: var(--muted);
-  padding: 6px 2px;
+  padding: 6px 0;
+  margin: 0 -2px 0 -4px;
   user-select: none;
   -webkit-user-select: none;
 }
-.entry-grip svg { display: block; fill: currentColor; opacity: 0.6; }
-.entry-grip:hover svg { opacity: 1; }
+.entry-grip svg { display: block; fill: currentColor; opacity: 0.4; }
+.entry-grip:hover svg { opacity: 0.9; }
 .entry-grip:active { cursor: grabbing; }
 
-/* Avatar redondo con la inicial (un poco más pequeño) */
+/* Avatar en cuadro redondeado con la inicial (color pastel) */
 .entry-avatar {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 15px;
-  color: #fff;
   text-transform: uppercase;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
 }
-
-/* Grupos por categoría */
-.group { margin-bottom: var(--sp-4); }
-.group-title {
-  margin: 0 0 var(--sp-2) 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.group-list { display: flex; flex-direction: column; gap: var(--sp-2); min-height: 8px; }
 
 /* Estados de arrastre (SortableJS) */
 .sortable-ghost { opacity: 0.4; }
-.sortable-chosen { box-shadow: var(--shadow-lg); }
+.sortable-chosen { background: var(--surface-2); }
 .sortable-drag { opacity: 0.95; }
 
 /* Zona central: se abre al tocarla */
