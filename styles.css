@@ -458,13 +458,37 @@ input:disabled {
 
 /* Grupos por categoría: un solo panel redondeado con filas separadas */
 .group { }
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px 0;
+}
+/* Plegado: el encabezado no deja hueco debajo → más juntos */
+.group.collapsed .group-head { margin-bottom: 0; }
+/* Agarre para mover la categoría entera */
+.cat-grip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  touch-action: none;
+  color: var(--muted);
+  padding: 6px 2px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cat-grip svg { display: block; fill: currentColor; opacity: 0.45; }
+.cat-grip:hover svg { opacity: 0.9; }
+.cat-grip:active { cursor: grabbing; }
 .group-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  margin: 0 0 10px 0;
-  padding: 6px 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 4px;
   min-height: auto;
   background: none;
   border: none;
@@ -477,8 +501,6 @@ input:disabled {
   text-align: left;
 }
 .group-title:hover { color: var(--text); }
-/* Plegado: el encabezado no deja hueco debajo → más juntos */
-.group.collapsed .group-title { margin-bottom: 0; }
 .group-chevron {
   margin-left: auto;               /* a la derecha */
   font-size: 24px;

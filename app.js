@@ -18,6 +18,7 @@
     SETTINGS: "baul.settings",       // ajustes locales (auto-bloqueo)
     CACHE_PREFIX: "baul.cache.",      // caché cifrada por correo
     COLLAPSED: "baul.collapsed",     // categorías plegadas (por dispositivo)
+    CATORDER: "baul.catorder",       // orden de las categorías (por dispositivo)
   };
 
   // Categorías conocidas (van primero, en este orden). El usuario puede crear
@@ -30,16 +31,19 @@
     return c || "Otros";
   }
 
-  // Orden de los grupos: conocidas presentes, luego personalizadas (alfabético), luego "Otros".
+  // Orden de los grupos: primero el orden que el usuario definió (arrastrando);
+  // el resto por defecto (conocidas, personalizadas alfabético, "Otros" al final).
   function orderedCategories(items) {
     const present = new Set(items.map(catOf));
     const out = [];
-    for (const k of KNOWN_CATEGORIES) if (present.has(k)) out.push(k);
-    const custom = [...present]
+    for (const c of categoryOrder) if (present.has(c) && !out.includes(c)) out.push(c);
+    const rest = [...present].filter((c) => !out.includes(c));
+    for (const k of KNOWN_CATEGORIES) if (rest.includes(k)) out.push(k);
+    const custom = rest
       .filter((c) => !KNOWN_CATEGORIES.includes(c) && c !== "Otros")
       .sort((a, b) => a.localeCompare(b));
     out.push(...custom);
-    if (present.has("Otros")) out.push("Otros");
+    if (rest.includes("Otros") && !out.includes("Otros")) out.push("Otros");
     return out;
   }
 
@@ -51,6 +55,7 @@
   let autolockTimer = null;
   let mode = "signin";       // "signin" | "signup" | "unlock"
   let collapsedCats = new Set(); // categorías plegadas (colapsadas)
+  let categoryOrder = [];        // orden personalizado de las categorías
 
   // ---- Helpers DOM ----
   const $ = (sel) => document.querySelector(sel);
@@ -103,10 +108,17 @@
       const c = JSON.parse(localStorage.getItem(LS.COLLAPSED) || "[]");
       if (Array.isArray(c)) collapsedCats = new Set(c);
     } catch {}
+    try {
+      const o = JSON.parse(localStorage.getItem(LS.CATORDER) || "[]");
+      if (Array.isArray(o)) categoryOrder = o;
+    } catch {}
   }
 
   function saveCollapsed() {
     try { localStorage.setItem(LS.COLLAPSED, JSON.stringify([...collapsedCats])); } catch {}
+  }
+  function saveCatOrder() {
+    try { localStorage.setItem(LS.CATORDER, JSON.stringify(categoryOrder)); } catch {}
   }
 
   // =====================================================================
@@ -462,6 +474,21 @@
       const isCollapsed = collapsedCats.has(cat);
       const section = document.createElement("section");
       section.className = "group" + (isCollapsed ? " collapsed" : "");
+      section.dataset.cat = cat;
+
+      const head = document.createElement("div");
+      head.className = "group-head";
+
+      const grip = document.createElement("span");
+      grip.className = "cat-grip";
+      grip.title = "Arrastra para mover la categoría";
+      grip.setAttribute("aria-label", "Mover categoría");
+      grip.innerHTML = `
+        <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true">
+          <circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/>
+          <circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/>
+          <circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/>
+        </svg>`;
 
       const h = document.createElement("button");
       h.type = "button";
@@ -472,7 +499,10 @@
         <span class="group-count">${group.length}</span>
         <span class="group-chevron" aria-hidden="true">›</span>`;
       h.onclick = () => toggleGroup(cat, section, h);
-      section.appendChild(h);
+
+      head.appendChild(grip);
+      head.appendChild(h);
+      section.appendChild(head);
 
       const glist = document.createElement("div");
       glist.className = "group-list";
@@ -499,10 +529,25 @@
 
   // ---- Arrastrar para ordenar (SortableJS) ----
   let sortables = [];
+  let catSortable = null;
   function initSortables() {
     if (typeof window.Sortable === "undefined") return; // sin la librería (offline): sin arrastre
     sortables.forEach((s) => { try { s.destroy(); } catch {} });
     sortables = [];
+    if (catSortable) { try { catSortable.destroy(); } catch {} catSortable = null; }
+
+    // Arrastrar CATEGORÍAS completas (agarre del encabezado) para subirlas/bajarlas.
+    const cont = document.getElementById("entries");
+    if (cont) {
+      catSortable = new window.Sortable(cont, {
+        handle: ".cat-grip",
+        draggable: ".group",
+        animation: 150,
+        onEnd: onCategoryDragEnd,
+      });
+    }
+
+    // Arrastrar ENTRADAS dentro/entre categorías.
     document.querySelectorAll("#entries .group-list").forEach((el) => {
       sortables.push(new window.Sortable(el, {
         handle: ".entry-grip",
@@ -512,6 +557,12 @@
         onEnd: onDragEnd,
       }));
     });
+  }
+
+  function onCategoryDragEnd() {
+    categoryOrder = [...document.querySelectorAll("#entries .group")].map((s) => s.dataset.cat);
+    saveCatOrder();
+    render($("#search").value); // re-numera con el nuevo orden
   }
 
   async function onDragEnd() {
