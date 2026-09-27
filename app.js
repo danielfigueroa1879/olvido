@@ -19,6 +19,9 @@
     CACHE_PREFIX: "baul.cache.",      // caché cifrada por correo
   };
 
+  // Categorías fijas para agrupar (el orden aquí es el orden de los grupos).
+  const CATEGORIES = ["Redes sociales", "Bancos", "Trabajo", "Correos", "Otros"];
+
   // ---- Estado en memoria (se borra al bloquear / cerrar sesión) ----
   let encKey = null;         // CryptoKey AES-GCM derivada de la contraseña maestra
   let email = "";            // correo de la sesión
@@ -368,47 +371,120 @@
   // =====================================================================
   // RENDER DE ENTRADAS
   // =====================================================================
+  function normalizeCategory(c) {
+    return CATEGORIES.includes(c) ? c : "Otros";
+  }
+
+  function buildRow(en, n) {
+    const card = document.createElement("article");
+    card.className = "entry";
+    card.dataset.id = en.id;
+    const href = safeUrl(en.url);
+    const title = en.title || "(sin título)";
+    const ini = initial(title);
+    const color = avatarColor(title);
+    card.innerHTML = `
+      <span class="entry-grip" title="Arrastra para ordenar" aria-label="Mover">⠿</span>
+      <span class="entry-num">${n}</span>
+      <div class="entry-avatar" style="background:${color}">${escapeHtml(ini)}</div>
+      <button type="button" class="entry-open" data-act="open">
+        <div class="entry-title">${escapeHtml(title)}</div>
+        ${en.username ? `<div class="entry-sub">${escapeHtml(en.username)}</div>` : ""}
+        ${href ? `<span class="entry-url">${escapeHtml(en.url)}</span>` : ""}
+      </button>
+      <div class="entry-actions">
+        <button type="button" class="ghost entry-key" data-act="copy-pass" title="Copiar contraseña">🔑</button>
+        <button type="button" class="entry-chevron" data-act="open" title="Ver / editar" aria-label="Abrir">›</button>
+      </div>`;
+    card.querySelector('.entry-open').onclick = () => openEntryDialog(en);
+    card.querySelector('.entry-chevron').onclick = () => openEntryDialog(en);
+    card.querySelector('[data-act="copy-pass"]').onclick = (e) => { e.stopPropagation(); copyClip(en.password, "Contraseña copiada (se borra en 20s)", true); };
+    return card;
+  }
+
   function render(filter = "") {
     const list = $("#entries");
     list.innerHTML = "";
     const q = filter.trim().toLowerCase();
     const active = entries.filter((en) => en && !en.deleted);
-    const items = active
-      .filter((en) =>
-        !q ||
-        (en.title || "").toLowerCase().includes(q) ||
-        (en.username || "").toLowerCase().includes(q) ||
-        (en.url || "").toLowerCase().includes(q))
-      .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    const items = active.filter((en) =>
+      !q ||
+      (en.title || "").toLowerCase().includes(q) ||
+      (en.username || "").toLowerCase().includes(q) ||
+      (en.url || "").toLowerCase().includes(q));
 
     $("#empty-state").hidden = active.length !== 0;
 
+    // Agrupa por categoría y ordena cada grupo por 'order' (y título de respaldo).
     let n = 0;
-    for (const en of items) {
-      n++;
-      const card = document.createElement("article");
-      card.className = "entry";
-      const href = safeUrl(en.url);
-      const title = en.title || "(sin título)";
-      const ini = initial(title);
-      const color = avatarColor(title);
-      card.innerHTML = `
-        <span class="entry-num">${n}</span>
-        <div class="entry-avatar" style="background:${color}">${escapeHtml(ini)}</div>
-        <button type="button" class="entry-open" data-act="open">
-          <div class="entry-title">${escapeHtml(title)}</div>
-          ${en.username ? `<div class="entry-sub">${escapeHtml(en.username)}</div>` : ""}
-          ${href ? `<span class="entry-url">${escapeHtml(en.url)}</span>` : ""}
-        </button>
-        <div class="entry-actions">
-          <button type="button" class="ghost entry-key" data-act="copy-pass" title="Copiar contraseña">🔑</button>
-          <button type="button" class="entry-chevron" data-act="open" title="Ver / editar" aria-label="Abrir">›</button>
-        </div>`;
-      card.querySelector('.entry-open').onclick = () => openEntryDialog(en);
-      card.querySelector('.entry-chevron').onclick = () => openEntryDialog(en);
-      card.querySelector('[data-act="copy-pass"]').onclick = (e) => { e.stopPropagation(); copyClip(en.password, "Contraseña copiada (se borra en 20s)", true); };
-      list.appendChild(card);
+    for (const cat of CATEGORIES) {
+      const group = items
+        .filter((en) => normalizeCategory(en.category) === cat)
+        .sort((a, b) =>
+          ((a.order ?? 1e9) - (b.order ?? 1e9)) ||
+          (a.title || "").localeCompare(b.title || ""));
+      if (!group.length) continue;
+
+      const section = document.createElement("section");
+      section.className = "group";
+      const h = document.createElement("h3");
+      h.className = "group-title";
+      h.textContent = `${cat} · ${group.length}`;
+      section.appendChild(h);
+
+      const glist = document.createElement("div");
+      glist.className = "group-list";
+      glist.dataset.cat = cat;
+      for (const en of group) { n++; glist.appendChild(buildRow(en, n)); }
+      section.appendChild(glist);
+      list.appendChild(section);
     }
+
+    initSortables();
+  }
+
+  // ---- Arrastrar para ordenar (SortableJS) ----
+  let sortables = [];
+  function initSortables() {
+    if (typeof window.Sortable === "undefined") return; // sin la librería (offline): sin arrastre
+    sortables.forEach((s) => { try { s.destroy(); } catch {} });
+    sortables = [];
+    document.querySelectorAll("#entries .group-list").forEach((el) => {
+      sortables.push(new window.Sortable(el, {
+        handle: ".entry-grip",
+        group: "vault",           // permite mover entre categorías
+        animation: 150,
+        draggable: ".entry",
+        onEnd: onDragEnd,
+      }));
+    });
+  }
+
+  async function onDragEnd() {
+    const changed = persistOrderFromDOM();
+    render($("#search").value);       // re-numera y re-agrupa
+    if (changed) await pushVault();
+  }
+
+  // Recalcula 'order' y 'category' según el orden visual actual.
+  function persistOrderFromDOM() {
+    let o = 0, changed = false;
+    const now = new Date().toISOString();
+    document.querySelectorAll("#entries .group-list").forEach((glist) => {
+      const cat = glist.dataset.cat;
+      glist.querySelectorAll(".entry").forEach((row) => {
+        const en = entries.find((e) => e.id === row.dataset.id && !e.deleted);
+        if (!en) return;
+        if (en.order !== o || normalizeCategory(en.category) !== cat) {
+          en.order = o;
+          en.category = cat;
+          en.updatedAt = now;
+          changed = true;
+        }
+        o++;
+      });
+    });
+    return changed;
   }
 
   // Inicial (primera letra útil) del título para el avatar.
@@ -432,6 +508,7 @@
     $("#entry-dialog-title").textContent = entry ? "Editar entrada" : "Nueva entrada";
     $("#entry-id").value = entry?.id || "";
     $("#entry-title").value = entry?.title || "";
+    $("#entry-category").value = normalizeCategory(entry?.category);
     $("#entry-url").value = entry?.url || "";
     $("#entry-username").value = entry?.username || "";
     $("#entry-password").value = entry?.password || "";
@@ -453,18 +530,26 @@
     dlg.showModal();
   }
 
+  function maxOrder() {
+    return entries.reduce((m, e) => (e && !e.deleted && typeof e.order === "number" ? Math.max(m, e.order) : m), -1);
+  }
+
   async function saveEntryFromForm() {
     const id = $("#entry-id").value || crypto.randomUUID();
+    const idx = entries.findIndex((en) => en.id === id);
+    const prev = idx >= 0 ? entries[idx] : null;
     const data = {
       id,
       title: $("#entry-title").value.trim(),
+      category: normalizeCategory($("#entry-category").value),
       url: $("#entry-url").value.trim(),
       username: $("#entry-username").value.trim(),
       password: $("#entry-password").value,
       notes: $("#entry-notes").value,
+      // conserva el orden si ya existía; si es nueva, va al final.
+      order: prev && typeof prev.order === "number" ? prev.order : maxOrder() + 1,
       updatedAt: new Date().toISOString(),
     };
-    const idx = entries.findIndex((en) => en.id === id);
     if (idx >= 0) entries[idx] = data; else entries.push(data);
     render($("#search").value);
     toast("Guardado", "ok");
@@ -863,9 +948,12 @@
   async function confirmImport() {
     if (!importParsed.length) return;
     const now = Date.now();
+    let ord = maxOrder();
     const toAdd = importParsed.map((e, i) => ({
       id: crypto.randomUUID(),
       title: e.title, username: e.username, password: e.password, url: e.url, notes: e.notes,
+      category: "Otros",
+      order: ++ord,
       updatedAt: new Date(now + i).toISOString(),
     }));
     entries = mergeEntries(entries, toAdd);

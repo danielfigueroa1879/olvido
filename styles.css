@@ -459,21 +459,52 @@ input:disabled {
   font-variant-numeric: tabular-nums;
 }
 
-/* Avatar redondo con la inicial */
+/* Agarre de 6 puntos para arrastrar */
+.entry-grip {
+  flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 2px;
+  user-select: none;
+  opacity: 0.7;
+}
+.entry-grip:active { cursor: grabbing; }
+
+/* Avatar redondo con la inicial (un poco más pequeño) */
 .entry-avatar {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 15px;
   color: #fff;
   text-transform: uppercase;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
 }
+
+/* Grupos por categoría */
+.group { margin-bottom: var(--sp-4); }
+.group-title {
+  margin: 0 0 var(--sp-2) 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.group-list { display: flex; flex-direction: column; gap: var(--sp-2); min-height: 8px; }
+
+/* Estados de arrastre (SortableJS) */
+.sortable-ghost { opacity: 0.4; }
+.sortable-chosen { box-shadow: var(--shadow-lg); }
+.sortable-drag { opacity: 0.95; }
 
 /* Zona central: se abre al tocarla */
 .entry-open {
