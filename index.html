@@ -199,10 +199,12 @@
         <textarea id="entry-notes" rows="2"></textarea>
       </label>
 
-      <menu class="dialog-actions">
-        <button type="button" class="ghost danger" id="entry-delete" hidden>🗑 Eliminar</button>
-        <button type="button" class="ghost" value="cancel" id="entry-cancel">Cancelar</button>
-        <button type="submit" class="primary" id="entry-save">Guardar</button>
+      <menu class="dialog-actions entry-bar">
+        <button type="button" class="ghost danger btn-delete-sm" id="entry-delete" title="Eliminar" aria-label="Eliminar" hidden>🗑</button>
+        <div class="actions-right">
+          <button type="button" class="ghost" value="cancel" id="entry-cancel">Cancelar</button>
+          <button type="submit" class="primary" id="entry-save">Guardar</button>
+        </div>
       </menu>
     </form>
   </dialog>

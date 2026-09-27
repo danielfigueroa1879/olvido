@@ -702,8 +702,26 @@ legend { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 6px;
 #entry-dialog .detail-actions { margin-bottom: 10px; gap: 8px; }
 #entry-dialog .detail-actions .ghost { min-height: 38px; padding: 8px 10px; font-size: 13.5px; }
 #entry-dialog .pw-input .ghost { min-height: 42px; }
-#entry-dialog .dialog-actions { margin-top: 6px; }
-#entry-dialog .dialog-actions button { min-height: 40px; }
+/* Barra de acciones: Eliminar pequeño abajo-izquierda; Guardar/Cancelar a la derecha */
+#entry-dialog .dialog-actions.entry-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+#entry-dialog .actions-right { display: flex; gap: 10px; }
+#entry-dialog .actions-right button { min-height: 40px; width: auto; }
+#entry-dialog .btn-delete-sm {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 15px;
+  opacity: 0.85;
+}
 
 /* =====================================================================
    Toast
