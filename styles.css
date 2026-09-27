@@ -14,6 +14,7 @@
   --border-strong: #4c5670;
   --text: #eef1f7;
   --muted: #a6aec2;
+  --topbar-bg: rgba(22, 25, 34, 0.80);
   --primary: #6c8cff;
   --primary-hover: #7f9bff;
   --primary-press: #5677f0;
@@ -71,6 +72,7 @@
   --danger: #d6453f;
   --ok: #1f9d57;
   --warn: #9a6a00;
+  --topbar-bg: rgba(255, 255, 255, 0.88);
 
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
   --shadow: 0 10px 30px rgba(16, 24, 40, 0.10);
@@ -97,6 +99,7 @@
     --danger: #d6453f;
     --ok: #1f9d57;
     --warn: #9a6a00;
+    --topbar-bg: rgba(255, 255, 255, 0.88);
 
     --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
     --shadow: 0 10px 30px rgba(16, 24, 40, 0.10);
@@ -399,7 +402,7 @@ input:disabled {
     calc(var(--sp-4) + var(--safe-r))
     var(--sp-3)
     calc(var(--sp-4) + var(--safe-l));
-  background: rgba(22, 25, 34, 0.78);
+  background: var(--topbar-bg);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--border);
@@ -409,10 +412,11 @@ input:disabled {
   flex-wrap: wrap;
 }
 .brand {
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 800;
+  font-size: 20px;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  color: var(--text);
 }
 .toolbar {
   display: flex;
@@ -809,7 +813,7 @@ legend { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 6px;
 /* Móviles (≈ hasta 430px de ancho) */
 @media (max-width: 430px) {
   body { font-size: 15px; }
-  .brand { font-size: 17px; }
+  .brand { font-size: 19px; }
   .entries { gap: var(--sp-2); }
   .entry { padding: 12px 13px; gap: var(--sp-2); }
   .dialog-actions { flex-direction: column-reverse; }
