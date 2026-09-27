@@ -15,5 +15,5 @@
  * y, además, va cifrada. Ver README.md para el paso a paso.
  */
 
-window.SUPABASE_URL = "TU_PROJECT_URL_AQUI";
-window.SUPABASE_ANON_KEY = "TU_ANON_KEY_AQUI";
+window.SUPABASE_URL = "https://uddazlyfnvqmyzhgyvdo.supabase.co";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkZGF6bHlmbnZxbXl6aGd5dmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MjcwOTcsImV4cCI6MjEwNjEwMzA5N30.0-IsyIsR0A0n163KrDtuOshaguvntTkdp0cDHddswuE";
