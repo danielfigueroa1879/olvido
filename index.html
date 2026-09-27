@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#0d0f16" />
+  <meta name="theme-color" content="#161922" />
   <title>Bóveda Olvido</title>
   <meta name="description" content="Tu bóveda de contraseñas cifrada, en la nube. Ábrela con tu correo y contraseña desde cualquier dispositivo." />
 
@@ -28,7 +28,7 @@
         var isDay = h >= 7 && h < 19;                 // 07:00–18:59 = día
         document.documentElement.setAttribute("data-theme", isDay ? "light" : "dark");
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", isDay ? "#eef1f6" : "#0d0f16");
+        if (meta) meta.setAttribute("content", isDay ? "#eef1f6" : "#161922");
       }
       applyAutoTheme();
       window.__applyAutoTheme = applyAutoTheme;
@@ -109,6 +109,11 @@
         </p>
         <p class="switch-line" id="reunlock-line" hidden>
           <button type="button" class="link" id="use-other">Usar otra cuenta</button>
+        </p>
+
+        <p class="secure-note">
+          🔒 Cifrado en tu dispositivo (AES-256). Ni el servidor ni nadie más
+          puede ver tus contraseñas: solo tú, con tu contraseña maestra.
         </p>
       </div>
 
