@@ -159,24 +159,28 @@ body {
   text-align: center;
 }
 .logo {
-  font-size: 44px;
+  font-size: 38px;
   line-height: 1;
   filter: drop-shadow(0 6px 18px rgba(108, 140, 255, 0.35));
 }
 .lock-card h1 {
-  margin: var(--sp-3) 0 var(--sp-1);
-  font-size: clamp(26px, 6vw, 32px);
+  margin: 8px 0 2px;
+  font-size: clamp(23px, 5.5vw, 28px);
   letter-spacing: -0.02em;
 }
-.subtitle { color: var(--muted); margin: 0 0 var(--sp-5); font-size: 15px; }
+.subtitle { color: var(--muted); margin: 0 0 var(--sp-4); font-size: 14.5px; }
 
 .card {
-  background: linear-gradient(180deg, var(--surface) 0%, rgba(22, 25, 34, 0.92) 100%);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: clamp(22px, 5vw, 32px);
+  padding: clamp(18px, 4vw, 26px);
   box-shadow: var(--shadow-lg);
 }
+
+/* Formulario de acceso más compacto */
+#auth-form .field { margin-bottom: 12px; }
+#auth-form .field > span { margin-bottom: 4px; }
 
 /* =====================================================================
    Campos de formulario
@@ -305,16 +309,16 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
 .link:hover { text-decoration: underline; }
 
-/* Aviso de cifrado en la pantalla de acceso */
+/* Aviso de cifrado en la pantalla de acceso (compacto, legible en ambos temas) */
 .secure-note {
-  margin: var(--sp-4) 0 0;
-  padding: 10px 12px;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--muted);
+  margin: var(--sp-3) 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
   text-align: center;
-  background: rgba(70, 209, 127, 0.08);
-  border: 1px solid rgba(70, 209, 127, 0.22);
+  background: rgba(52, 180, 110, 0.13);
+  border: 1px solid rgba(52, 180, 110, 0.32);
   border-radius: var(--radius-sm);
 }
 
