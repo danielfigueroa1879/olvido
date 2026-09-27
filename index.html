@@ -23,18 +23,28 @@
        Se aplica antes de cargar el CSS para que no haya parpadeo. -->
   <script>
     (function () {
-      function applyAutoTheme() {
+      var KEY = "baul.theme"; // "auto" | "light" | "dark"
+      function getPref() { try { return localStorage.getItem(KEY) || "auto"; } catch (e) { return "auto"; } }
+      function effective() {
+        var p = getPref();
+        if (p === "light" || p === "dark") return p;
         var h = new Date().getHours();
-        var isDay = h >= 7 && h < 19;                 // 07:00–18:59 = día
-        document.documentElement.setAttribute("data-theme", isDay ? "light" : "dark");
-        var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", isDay ? "#eef1f6" : "#161922");
+        return (h >= 7 && h < 19) ? "light" : "dark"; // 07:00–18:59 = día
       }
-      applyAutoTheme();
-      window.__applyAutoTheme = applyAutoTheme;
-      setInterval(applyAutoTheme, 10 * 60 * 1000);     // reevalúa cada 10 min
+      function applyTheme() {
+        var t = effective();
+        document.documentElement.setAttribute("data-theme", t);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", t === "light" ? "#eef1f6" : "#161922");
+      }
+      window.__getThemePref = getPref;
+      window.__setThemePref = function (p) { try { localStorage.setItem(KEY, p); } catch (e) {} applyTheme(); };
+      window.__applyTheme = applyTheme;
+      applyTheme();
+      // Reevalúa por si cambia la hora (solo afecta cuando el modo es automático).
+      setInterval(applyTheme, 10 * 60 * 1000);
       document.addEventListener("visibilitychange", function () {
-        if (!document.hidden) applyAutoTheme();          // al volver a la pestaña
+        if (!document.hidden) applyTheme();
       });
     })();
 
@@ -133,6 +143,7 @@
           <input type="search" id="search" placeholder="Buscar…" autocomplete="off" />
           <button class="primary" id="add-btn">＋ Nueva</button>
           <button class="ghost" id="sync-btn" title="Sincronizar">⟳</button>
+          <button class="ghost" id="theme-btn" title="Tema">🌗</button>
           <button class="ghost" id="settings-btn" title="Ajustes">⚙</button>
           <button class="ghost" id="lock-now-btn" title="Bloquear">🔒</button>
         </div>

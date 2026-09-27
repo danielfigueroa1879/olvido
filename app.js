@@ -326,6 +326,27 @@
     setMode("signin");
   }
 
+  // =====================================================================
+  // TEMA (sol / luna / automático)
+  // =====================================================================
+  function themePref() { return (window.__getThemePref && window.__getThemePref()) || "auto"; }
+  function themeIcon(p) { return p === "light" ? "☀️" : p === "dark" ? "🌙" : "🌗"; }
+  function themeLabel(p) { return p === "light" ? "claro" : p === "dark" ? "oscuro" : "automático"; }
+  function updateThemeBtn() {
+    const b = $("#theme-btn");
+    if (!b) return;
+    const p = themePref();
+    b.textContent = themeIcon(p);
+    b.title = "Tema: " + themeLabel(p);
+  }
+  function cycleTheme() {
+    const cur = themePref();
+    const next = cur === "auto" ? "light" : cur === "light" ? "dark" : "auto";
+    if (window.__setThemePref) window.__setThemePref(next);
+    updateThemeBtn();
+    toast("Tema: " + themeLabel(next), "ok");
+  }
+
   function resetAutolock() {
     clearTimeout(autolockTimer);
     const min = Math.max(1, Number(settings.autolockMin) || 5);
@@ -1123,6 +1144,8 @@
     $("#add-btn").onclick = () => openEntryDialog();
     $("#lock-now-btn").onclick = lock;
     $("#sync-btn").onclick = syncNow;
+    $("#theme-btn").onclick = cycleTheme;
+    updateThemeBtn();
     $("#settings-btn").onclick = () => {
       $("#account-email").textContent = email;
       $("#autolock-min").value = settings.autolockMin || 5;
