@@ -4,16 +4,16 @@
    ===================================================================== */
 
 :root {
-  /* Paleta oscura (fija). */
-  --bg: #0d0f16;
-  --bg-glow: rgba(108, 140, 255, 0.10);
-  --surface: #161922;
-  --surface-2: #1e222e;
-  --surface-3: #262b39;
-  --border: #2a3040;
-  --border-strong: #363d50;
-  --text: #eceef4;
-  --muted: #98a0b3;
+  /* Paleta oscura (base). Negro más suave y contornos más visibles. */
+  --bg: #161922;
+  --bg-glow: rgba(108, 140, 255, 0.12);
+  --surface: #1f2430;
+  --surface-2: #272d3b;
+  --surface-3: #313849;
+  --border: #3a4256;
+  --border-strong: #4c5670;
+  --text: #eef1f7;
+  --muted: #a6aec2;
   --primary: #6c8cff;
   --primary-hover: #7f9bff;
   --primary-press: #5677f0;
@@ -305,6 +305,19 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
 .link:hover { text-decoration: underline; }
 
+/* Aviso de cifrado en la pantalla de acceso */
+.secure-note {
+  margin: var(--sp-4) 0 0;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: center;
+  background: rgba(70, 209, 127, 0.08);
+  border: 1px solid rgba(70, 209, 127, 0.22);
+  border-radius: var(--radius-sm);
+}
+
 input:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -374,7 +387,7 @@ input:disabled {
     calc(var(--sp-4) + var(--safe-r))
     var(--sp-3)
     calc(var(--sp-4) + var(--safe-l));
-  background: rgba(13, 15, 22, 0.72);
+  background: rgba(22, 25, 34, 0.78);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--border);

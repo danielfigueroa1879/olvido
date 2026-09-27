@@ -280,6 +280,8 @@
     $("#autolock-min").value = settings.autolockMin || 5;
     render();
     resetAutolock();
+    // Aviso al entrar: todo está cifrado.
+    toast("🔒 Bóveda cifrada · solo tú puedes verla", "ok");
     // Baja cambios remotos y fusiona (por si otro dispositivo agregó algo).
     syncPull(true);
   }
