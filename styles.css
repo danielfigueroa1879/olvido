@@ -687,6 +687,24 @@ legend { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 6px;
 .row { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
 .row .ghost { flex: 1 1 auto; }
 
+/* Diálogo de entrada más compacto (letra algo más grande, menos espacio) */
+#entry-dialog { padding: 18px 18px calc(16px + var(--safe-b)); }
+#entry-dialog h2 { margin-bottom: 12px; font-size: 19px; }
+#entry-dialog .field { margin-bottom: 9px; }
+#entry-dialog .field > span { font-size: 13.5px; margin-bottom: 3px; }
+#entry-dialog input,
+#entry-dialog select,
+#entry-dialog textarea {
+  padding: 9px 11px;
+  font-size: 16px;   /* legible y sin zoom automático en iOS */
+}
+#entry-dialog textarea { min-height: 46px; }
+#entry-dialog .detail-actions { margin-bottom: 10px; gap: 8px; }
+#entry-dialog .detail-actions .ghost { min-height: 38px; padding: 8px 10px; font-size: 13.5px; }
+#entry-dialog .pw-input .ghost { min-height: 42px; }
+#entry-dialog .dialog-actions { margin-top: 6px; }
+#entry-dialog .dialog-actions button { min-height: 40px; }
+
 /* =====================================================================
    Toast
    ===================================================================== */
