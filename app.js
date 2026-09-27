@@ -484,6 +484,65 @@
   }
 
   // =====================================================================
+  // CAMBIAR CONTRASEÑA MAESTRA
+  // =====================================================================
+  function openPasswordDialog() {
+    $("#new-password").value = "";
+    $("#new-password-confirm").value = "";
+    $("#new-password").type = "password";
+    $("#new-strength-fill").style.width = "0%";
+    $("#new-strength-label").textContent = "";
+    hide($("#password-error"));
+    $("#password-dialog").showModal();
+  }
+
+  async function changeMasterPassword() {
+    const npw = $("#new-password").value;
+    const conf = $("#new-password-confirm").value;
+    const errEl = $("#password-error");
+    hide(errEl);
+    if (npw.length < 8) { errEl.textContent = "Usa al menos 8 caracteres (mejor una frase larga)."; show(errEl); return; }
+    if (npw !== conf) { errEl.textContent = "Las contraseñas no coinciden."; show(errEl); return; }
+
+    const btn = $("#password-save");
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = "…";
+    try {
+      const { encKey: newKey, authPassword } = await Vault.deriveKeys(npw, email);
+      // 1) Cambia la clave de acceso en Supabase (la sesión sigue activa).
+      await Cloud.updatePassword(authPassword);
+      // 2) Re-cifra la bóveda con la nueva llave y guárdala (con reintentos).
+      let saved = false, lastErr = null;
+      for (let i = 0; i < 3 && !saved; i++) {
+        try {
+          const content = JSON.stringify(await Vault.encryptWithKey(newKey, { entries }));
+          try { localStorage.setItem(cacheKey(), content); } catch {}
+          await Cloud.saveVault(content);
+          saved = true;
+        } catch (e) {
+          lastErr = e;
+          await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+        }
+      }
+      if (!saved) {
+        // Estado delicado: la clave ya cambió pero la bóveda no se re-cifró.
+        // Pulsar "Cambiar" de nuevo es seguro (es idempotente) y reintenta.
+        throw new Error("Contraseña cambiada, pero no se pudo re-cifrar la bóveda. NO cierres la app y pulsa Cambiar otra vez. (" + (lastErr && lastErr.message) + ")");
+      }
+      encKey = newKey;
+      $("#password-dialog").close();
+      toast("Contraseña maestra cambiada ✓", "ok");
+    } catch (err) {
+      errEl.textContent = err.message || "No se pudo cambiar la contraseña.";
+      show(errEl);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  }
+
+  // =====================================================================
   // EXPORTAR / IMPORTAR (respaldo cifrado)
   // =====================================================================
   async function exportVault() {
@@ -550,7 +609,18 @@
     $("#settings-form").addEventListener("submit", () => saveSettingsFromForm());
     $("#settings-cancel").onclick = () => $("#settings-dialog").close();
     $("#signout-btn").onclick = signOutFull;
+    $("#change-pw-btn").onclick = openPasswordDialog;
     $("#export-btn").onclick = exportVault;
+
+    // Diálogo cambiar contraseña maestra
+    $("#password-form").addEventListener("submit", (e) => { e.preventDefault(); changeMasterPassword(); });
+    $("#password-cancel").onclick = () => $("#password-dialog").close();
+    $("#new-password").addEventListener("input", () => {
+      const { score, label } = Vault.estimateStrength($("#new-password").value);
+      $("#new-strength-fill").style.width = (score * 25) + "%";
+      $("#new-strength-fill").dataset.score = score;
+      $("#new-strength-label").textContent = label;
+    });
     $("#import-btn").onclick = () => $("#import-file").click();
     $("#import-file").addEventListener("change", (e) => {
       if (e.target.files[0]) importVault(e.target.files[0]);
