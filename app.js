@@ -468,9 +468,9 @@
       h.className = "group-title";
       h.setAttribute("aria-expanded", String(!isCollapsed));
       h.innerHTML = `
-        <span class="group-chevron" aria-hidden="true">›</span>
         <span class="group-name">${escapeHtml(cat)}</span>
-        <span class="group-count">${group.length}</span>`;
+        <span class="group-count">${group.length}</span>
+        <span class="group-chevron" aria-hidden="true">›</span>`;
       h.onclick = () => toggleGroup(cat, section, h);
       section.appendChild(h);
 
