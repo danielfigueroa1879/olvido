@@ -47,7 +47,64 @@
   color-scheme: dark;
 }
 
-/* Modo oscuro fijo: se ignora la preferencia clara del sistema. */
+/* ---------------------------------------------------------------------
+   Tema CLARO (día).
+   Lo activa data-theme="light" (JS según la hora). Si el JS no corre,
+   se respeta la preferencia del sistema como respaldo.
+   El tema OSCURO (noche) es el :root de arriba, y data-theme="dark" lo
+   fuerza también como respaldo del media query.
+   --------------------------------------------------------------------- */
+:root[data-theme="light"] {
+  --bg: #eef1f6;
+  --bg-glow: rgba(79, 107, 240, 0.08);
+  --surface: #ffffff;
+  --surface-2: #f2f4f9;
+  --surface-3: #e7ebf3;
+  --border: #dee2ec;
+  --border-strong: #c6cdda;
+  --text: #171a22;
+  --muted: #5b6376;
+  --primary: #4f6bf0;
+  --primary-hover: #4560e6;
+  --primary-press: #3a54d8;
+  --on-primary: #ffffff;
+  --danger: #d6453f;
+  --ok: #1f9d57;
+  --warn: #9a6a00;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow: 0 10px 30px rgba(16, 24, 40, 0.10);
+  --shadow-lg: 0 24px 60px rgba(16, 24, 40, 0.16);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef1f6;
+    --bg-glow: rgba(79, 107, 240, 0.08);
+    --surface: #ffffff;
+    --surface-2: #f2f4f9;
+    --surface-3: #e7ebf3;
+    --border: #dee2ec;
+    --border-strong: #c6cdda;
+    --text: #171a22;
+    --muted: #5b6376;
+    --primary: #4f6bf0;
+    --primary-hover: #4560e6;
+    --primary-press: #3a54d8;
+    --on-primary: #ffffff;
+    --danger: #d6453f;
+    --ok: #1f9d57;
+    --warn: #9a6a00;
+
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+    --shadow: 0 10px 30px rgba(16, 24, 40, 0.10);
+    --shadow-lg: 0 24px 60px rgba(16, 24, 40, 0.16);
+
+    color-scheme: light;
+  }
+}
 
 * { box-sizing: border-box; }
 
