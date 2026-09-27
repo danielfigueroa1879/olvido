@@ -398,7 +398,7 @@
     const href = safeUrl(en.url);
     const title = en.title || "(sin título)";
     const ini = initial(title);
-    const color = avatarColor(title);
+    const hue = avatarHue(title);
     card.innerHTML = `
       <span class="entry-grip" title="Arrastra para ordenar" aria-label="Mover">
         <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true">
@@ -408,7 +408,7 @@
         </svg>
       </span>
       <span class="entry-num">${n}</span>
-      <div class="entry-avatar" style="background:${color}">${escapeHtml(ini)}</div>
+      <div class="entry-avatar" style="background:hsl(${hue} 70% 88%);color:hsl(${hue} 48% 38%)">${escapeHtml(ini)}</div>
       <button type="button" class="entry-open" data-act="open">
         <div class="entry-title">${escapeHtml(title)}</div>
         ${en.username ? `<div class="entry-sub">${escapeHtml(en.username)}</div>` : ""}
@@ -451,7 +451,7 @@
       section.className = "group";
       const h = document.createElement("h3");
       h.className = "group-title";
-      h.textContent = `${cat} · ${group.length}`;
+      h.innerHTML = `<span>${escapeHtml(cat)}</span><span class="group-count">${group.length}</span>`;
       section.appendChild(h);
 
       const glist = document.createElement("div");
@@ -514,12 +514,12 @@
     const m = String(s || "").trim().match(/[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ]/);
     return m ? m[0].toUpperCase() : "•";
   }
-  // Color estable a partir del texto (para el avatar redondo).
-  function avatarColor(s) {
+  // Tono (hue) estable a partir del texto, para el color del avatar.
+  function avatarHue(s) {
     let h = 0;
     const str = String(s || "");
     for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
-    return `hsl(${h}, 55%, 45%)`;
+    return h;
   }
 
   // =====================================================================
