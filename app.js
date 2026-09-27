@@ -19,8 +19,28 @@
     CACHE_PREFIX: "baul.cache.",      // caché cifrada por correo
   };
 
-  // Categorías fijas para agrupar (el orden aquí es el orden de los grupos).
-  const CATEGORIES = ["Redes sociales", "Bancos", "Trabajo", "Correos", "Otros"];
+  // Categorías conocidas (van primero, en este orden). El usuario puede crear
+  // las suyas escribiendo en "Otros"; esas se muestran después, y "Otros" al final.
+  const KNOWN_CATEGORIES = ["Redes sociales", "Bancos", "Trabajo", "Correos"];
+
+  // Categoría efectiva de una entrada (texto libre; vacío => "Otros").
+  function catOf(en) {
+    const c = en && en.category ? String(en.category).trim() : "";
+    return c || "Otros";
+  }
+
+  // Orden de los grupos: conocidas presentes, luego personalizadas (alfabético), luego "Otros".
+  function orderedCategories(items) {
+    const present = new Set(items.map(catOf));
+    const out = [];
+    for (const k of KNOWN_CATEGORIES) if (present.has(k)) out.push(k);
+    const custom = [...present]
+      .filter((c) => !KNOWN_CATEGORIES.includes(c) && c !== "Otros")
+      .sort((a, b) => a.localeCompare(b));
+    out.push(...custom);
+    if (present.has("Otros")) out.push("Otros");
+    return out;
+  }
 
   // ---- Estado en memoria (se borra al bloquear / cerrar sesión) ----
   let encKey = null;         // CryptoKey AES-GCM derivada de la contraseña maestra
@@ -371,10 +391,6 @@
   // =====================================================================
   // RENDER DE ENTRADAS
   // =====================================================================
-  function normalizeCategory(c) {
-    return CATEGORIES.includes(c) ? c : "Otros";
-  }
-
   function buildRow(en, n) {
     const card = document.createElement("article");
     card.className = "entry";
@@ -417,9 +433,9 @@
 
     // Agrupa por categoría y ordena cada grupo por 'order' (y título de respaldo).
     let n = 0;
-    for (const cat of CATEGORIES) {
+    for (const cat of orderedCategories(items)) {
       const group = items
-        .filter((en) => normalizeCategory(en.category) === cat)
+        .filter((en) => catOf(en) === cat)
         .sort((a, b) =>
           ((a.order ?? 1e9) - (b.order ?? 1e9)) ||
           (a.title || "").localeCompare(b.title || ""));
@@ -475,7 +491,7 @@
       glist.querySelectorAll(".entry").forEach((row) => {
         const en = entries.find((e) => e.id === row.dataset.id && !e.deleted);
         if (!en) return;
-        if (en.order !== o || normalizeCategory(en.category) !== cat) {
+        if (en.order !== o || catOf(en) !== cat) {
           en.order = o;
           en.category = cat;
           en.updatedAt = now;
@@ -503,12 +519,29 @@
   // =====================================================================
   // MODAL DE ENTRADA
   // =====================================================================
+  // Muestra el campo de texto solo cuando la categoría es "Otros".
+  function toggleCustomCat() {
+    $("#entry-category-custom-field").hidden = $("#entry-category").value !== "Otros";
+  }
+  // Lee la categoría final del formulario (texto libre si eligió "Otros").
+  function readCategoryFromForm() {
+    const sel = $("#entry-category").value;
+    if (sel === "Otros") return ($("#entry-category-custom").value || "").trim() || "Otros";
+    return sel;
+  }
+
   function openEntryDialog(entry = null) {
     const dlg = $("#entry-dialog");
     $("#entry-dialog-title").textContent = entry ? "Editar entrada" : "Nueva entrada";
     $("#entry-id").value = entry?.id || "";
     $("#entry-title").value = entry?.title || "";
-    $("#entry-category").value = normalizeCategory(entry?.category);
+    // Categoría: si es una conocida, se elige; si es personalizada, se elige
+    // "Otros" y se rellena el campo de texto con su nombre.
+    const cat = catOf(entry || {});
+    const known = KNOWN_CATEGORIES.includes(cat);
+    $("#entry-category").value = known ? cat : "Otros";
+    $("#entry-category-custom").value = known ? "" : (cat === "Otros" ? "" : cat);
+    toggleCustomCat();
     $("#entry-url").value = entry?.url || "";
     $("#entry-username").value = entry?.username || "";
     $("#entry-password").value = entry?.password || "";
@@ -541,7 +574,7 @@
     const data = {
       id,
       title: $("#entry-title").value.trim(),
-      category: normalizeCategory($("#entry-category").value),
+      category: readCategoryFromForm(),
       url: $("#entry-url").value.trim(),
       username: $("#entry-username").value.trim(),
       password: $("#entry-password").value,
@@ -989,6 +1022,7 @@
     // Modal entrada
     $("#entry-form").addEventListener("submit", () => saveEntryFromForm());
     $("#entry-cancel").onclick = () => $("#entry-dialog").close();
+    $("#entry-category").addEventListener("change", toggleCustomCat);
     // (los botones copiar/eliminar del detalle se conectan en openEntryDialog)
     $("#gen-btn").onclick = () => {
       const pw = Vault.generatePassword({ length: 20 });
