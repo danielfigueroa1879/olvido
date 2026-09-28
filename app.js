@@ -1162,6 +1162,23 @@
 
     $("#search").addEventListener("input", (e) => render(e.target.value));
 
+    // Buscador colapsable en móvil: la lupa abre el campo; se cierra si queda vacío.
+    $("#search-btn").onclick = () => {
+      $(".toolbar").classList.add("searching");
+      const s = $("#search");
+      s.focus();
+    };
+    $("#search").addEventListener("blur", () => {
+      if (!$("#search").value.trim()) $(".toolbar").classList.remove("searching");
+    });
+    $("#search").addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        $("#search").value = "";
+        render("");
+        $("#search").blur();
+      }
+    });
+
     // Modal entrada
     $("#entry-form").addEventListener("submit", () => saveEntryFromForm());
     $("#entry-cancel").onclick = () => $("#entry-dialog").close();
