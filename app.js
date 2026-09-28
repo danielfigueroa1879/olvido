@@ -227,7 +227,7 @@
     if (!pw) return authError("Escribe tu contraseña.");
     if (mode === "signup") {
       const confirm = $("#auth-password-confirm").value;
-      if (pw.length < 8) return authError("Usa al menos 8 caracteres (mejor una frase larga).");
+      if (pw.length < 12) return authError("Usa al menos 12 caracteres (mejor una frase larga).");
       if (pw !== confirm) return authError("Las contraseñas no coinciden.");
     }
 
@@ -782,7 +782,7 @@
     const conf = $("#new-password-confirm").value;
     const errEl = $("#password-error");
     hide(errEl);
-    if (npw.length < 8) { errEl.textContent = "Usa al menos 8 caracteres (mejor una frase larga)."; show(errEl); return; }
+    if (npw.length < 12) { errEl.textContent = "Usa al menos 12 caracteres (mejor una frase larga)."; show(errEl); return; }
     if (npw !== conf) { errEl.textContent = "Las contraseñas no coinciden."; show(errEl); return; }
 
     const btn = $("#password-save");
@@ -1021,11 +1021,19 @@
   }
 
   // ---- Lectura de archivos (PDF / Word se cargan bajo demanda) ----
+    const SRI = {
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js":
+      "sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e",
+    "https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js":
+      "sha384-/cXAMbzovUIKbBERjPmR3SnPTh8siWr5lsvFYj1Uq4XP0yaJUZJmsh0YXyGv5P0y",
+  };
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const s = document.createElement("script");
-      s.src = src; s.onload = resolve;
-      s.onerror = () => reject(new Error("no se pudo cargar el lector (¿sin conexión?)"));
+      s.src = src;
+      if (SRI[src]) { s.integrity = SRI[src]; s.crossOrigin = "anonymous"; }
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("no se pudo cargar el lector (¿sin conexión o archivo alterado?)"));
       document.head.appendChild(s);
     });
   }
