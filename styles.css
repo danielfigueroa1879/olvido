@@ -432,6 +432,7 @@ input:disabled {
 }
 .toolbar .ghost, .toolbar .primary { min-height: 40px; }
 .toolbar .primary { width: auto; padding: 9px 14px; }
+#search-btn { display: none; } /* solo aparece en móvil */
 
 /* Estado de sincronización */
 .sync-status {
@@ -803,11 +804,19 @@ legend { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 6px;
    Responsivo
    ===================================================================== */
 
-/* Tablet / móvil grande: la búsqueda ocupa toda la fila */
+/* Móvil: el buscador se colapsa a una lupa; se expande al tocarla */
 @media (max-width: 620px) {
   .topbar { gap: var(--sp-2); }
   .toolbar { width: 100%; margin-left: 0; }
-  .toolbar #search { flex: 1 1 auto; width: auto; order: -1; }
+  .toolbar #search { display: none; }                 /* colapsado por defecto */
+  #search-btn { display: inline-flex; align-items: center; justify-content: center; }
+  .toolbar.searching #search {
+    display: block;
+    flex: 1 1 100%;
+    width: 100%;
+    order: -1;                                         /* ocupa su propia fila arriba */
+  }
+  .toolbar.searching #search-btn { display: none; }   /* al abrir, se oculta la lupa */
 }
 
 /* Móviles (≈ hasta 430px de ancho) */
