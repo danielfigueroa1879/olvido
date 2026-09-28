@@ -817,6 +817,10 @@ legend { color: var(--muted); font-size: 13px; font-weight: 600; padding: 0 6px;
     order: -1;                                         /* ocupa su propia fila arriba */
   }
   .toolbar.searching #search-btn { display: none; }   /* al abrir, se oculta la lupa */
+
+  /* Chevron más grandes en celular (categorías y cápsulas) */
+  .group-chevron { font-size: 30px; }
+  .entry-chevron { font-size: 30px; min-width: 40px; padding: 8px 8px; }
 }
 
 /* Móviles (≈ hasta 430px de ancho) */
